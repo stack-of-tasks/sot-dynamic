@@ -1,15 +1,15 @@
 <map id="G" name="G">
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_entity.html" title="dynamicgraph::Entity" alt="" coords="1408,187,1549,216"/>
-<area shape="rect" href="dynamic-graph.doxytag$classboost_1_1noncopyable.html" title="boost::noncopyable" alt="" coords="225,275,359,304"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal_base.html" title="dynamicgraph::SignalBase\&lt; int \&gt;" alt="" coords="492,189,705,219"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal_base.html" title="dynamicgraph::SignalBase\&lt; Time \&gt;" alt="" coords="485,320,712,349"/>
-<area shape="rect" title="STL class." alt="" coords="252,109,332,139"/>
-<area shape="rect" title="STL class." alt="" coords="7,109,172,139"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal_ptr.html" title="dynamicgraph::SignalPtr\&lt; MatrixRotation, int \&gt;" alt="" coords="1333,253,1624,283"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal.html" title="dynamicgraph::Signal\&lt; T, Time \&gt;" alt="" coords="925,368,1139,397"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal_ptr.html" title="dynamicgraph::SignalPtr\&lt; MatrixHomogeneous, int \&gt;" alt="" coords="1315,320,1643,349"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal_time_dependent.html" title="dynamicgraph::SignalTimeDependent\&lt; MatrixHomogeneous, int \&gt;" alt="" coords="1279,535,1679,564"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal_time_dependent.html" title="dynamicgraph::SignalTimeDependent\&lt; ml::Vector, int \&gt;" alt="" coords="1308,380,1649,409"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_signal_time_dependent.html" title="dynamicgraph::SignalTimeDependent\&lt; MatrixRotation, int \&gt;" alt="" coords="1296,481,1661,511"/>
-<area shape="rect" href="dynamic-graph.doxytag$classdynamicgraph_1_1_time_dependency.html" title="dynamicgraph::TimeDependency\&lt; Time \&gt;" alt="" coords="900,501,1164,531"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_entity.html" title="dynamicgraph::Entity" alt="" coords="1528,184,1683,211"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classboost_1_1noncopyable.html" title="boost::noncopyable" alt="" coords="240,263,387,289"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal_base.html" title="dynamicgraph::SignalBase\&lt; int \&gt;" alt="" coords="525,184,763,211"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal_base.html" title="dynamicgraph::SignalBase\&lt; Time \&gt;" alt="" coords="519,296,769,323"/>
+<area shape="rect" title="STL class." alt="" coords="271,103,356,129"/>
+<area shape="rect" title="STL class." alt="" coords="5,103,189,129"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal_ptr.html" title="dynamicgraph::SignalPtr\&lt; MatrixRotation, int \&gt;" alt="" coords="1444,243,1767,269"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal.html" title="dynamicgraph::Signal\&lt; T, Time \&gt;" alt="" coords="997,345,1232,372"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal_ptr.html" title="dynamicgraph::SignalPtr\&lt; MatrixHomogeneous, int \&gt;" alt="" coords="1424,307,1787,333"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal_time_dependent.html" title="dynamicgraph::SignalTimeDependent\&lt; MatrixHomogeneous, int \&gt;" alt="" coords="1381,512,1829,539"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal_time_dependent.html" title="dynamicgraph::SignalTimeDependent\&lt; ml::Vector, int \&gt;" alt="" coords="1416,365,1795,392"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_signal_time_dependent.html" title="dynamicgraph::SignalTimeDependent\&lt; MatrixRotation, int \&gt;" alt="" coords="1403,461,1808,488"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_time_dependency.html" title="dynamicgraph::TimeDependency\&lt; Time \&gt;" alt="" coords="969,479,1260,505"/>
 </map>
