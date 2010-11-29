@@ -20,12 +20,12 @@
 <h1>sot-dynamic Documentation</h1>  </div>
 </div>
 <div class="contents">
-<h3 class="version">1.1-45-g30df </h3><h2><a class="anchor" id="sec_intro"></a>
+<h3 class="version">1.1-46-g10de </h3><h2><a class="anchor" id="sec_intro"></a>
 sec_intro</h2>
-<p>The sot-dynamic package is a bridge between the stack of tasks framework and the <a class="el" href="namespacedynamics_j_r_l_japan.html">dynamicsJRLJapan</a> library. It provides an inverse dynamic model of the robot through dynamic-graph entities. More precisely it wraps the newton euler algorithm implemented by the <a class="el" href="namespacedynamics_j_r_l_japan.html">dynamicsJRLJapan</a> library to make it accessible for the stack of tasks controllers (in the Stack of Tasks Framework as defined in <a class="el" href="main.html#Mansard2007">Mansard2007</a>.)</p>
+<p>The sot-dynamic package is a bridge between the stack of tasks framework and the <a class="el" href="a00035.html">dynamicsJRLJapan</a> library. It provides an inverse dynamic model of the robot through dynamic-graph entities. More precisely it wraps the newton euler algorithm implemented by the <a class="el" href="a00035.html">dynamicsJRLJapan</a> library to make it accessible for the stack of tasks controllers (in the Stack of Tasks Framework as defined in <a class="el" href="main.html#Mansard2007">Mansard2007</a>.)</p>
 <p>This package depends on the following packages: </p>
 <ul>
-<li><a class="el" href="namespacedynamics_j_r_l_japan.html">dynamicsJRLJapan</a> </li>
+<li><a class="el" href="a00035.html">dynamicsJRLJapan</a> </li>
 <li>sot-core </li>
 <li>dynamic-graph Optional packages (for specific support of the hrp2-N robots) </li>
 <li>hrp210optimized </li>
@@ -38,21 +38,21 @@ overview</h2>
 <p>The following entities are created by this package:<br/>
  (all entites are placed in the namespace sot::) </p>
 <ul>
-<li><a class="el" href="classsot_1_1_zmpref_from_com.html">sot::ZmprefFromCom</a> </li>
-<li><a class="el" href="classsot_1_1_force_compensation.html">sot::ForceCompensation</a> </li>
-<li><a class="el" href="classsot_1_1_integrator_force_exact.html">sot::IntegratorForceExact</a> </li>
-<li><a class="el" href="classsot_1_1_mass_apparent.html">sot::MassApparent</a> </li>
+<li><a class="el" href="a00020.html">sot::ZmprefFromCom</a> </li>
+<li><a class="el" href="a00011.html">sot::ForceCompensation</a> </li>
+<li><a class="el" href="a00014.html">sot::IntegratorForceExact</a> </li>
+<li><a class="el" href="a00016.html">sot::MassApparent</a> </li>
 <li>sot::IntegratorForceRk4 </li>
-<li><a class="el" href="classsot_1_1_integrator_force.html">sot::IntegratorForce</a> </li>
-<li><a class="el" href="classsot_1_1_angle_estimator.html">sot::AngleEstimator</a> </li>
-<li><a class="el" href="classsot_1_1_waist_attitude_from_sensor.html">sot::WaistAttitudeFromSensor</a> </li>
-<li><a class="el" href="classsot_1_1_dynamic.html" title="This class provides an inverse dynamic model of the robot. More precisely it wraps the newton euler a...">sot::Dynamic</a> - provides the inverse dynamics computations for of a humanoid robot</li>
+<li><a class="el" href="a00013.html">sot::IntegratorForce</a> </li>
+<li><a class="el" href="a00006.html">sot::AngleEstimator</a> </li>
+<li><a class="el" href="a00018.html">sot::WaistAttitudeFromSensor</a> </li>
+<li><a class="el" href="a00007.html" title="This class provides an inverse dynamic model of the robot. More precisely it wraps the newton euler a...">sot::Dynamic</a> - provides the inverse dynamics computations for of a humanoid robot</li>
 </ul>
 <p>Optionally, if the packages in brackets are installed, the following entities are made available: </p>
 <ul>
-<li><a class="el" href="classsot_1_1_dynamic_hrp2.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics computations...">sot::DynamicHrp2</a> - same as <a class="el" href="classsot_1_1_dynamic.html" title="This class provides an inverse dynamic model of the robot. More precisely it wraps the newton euler a...">sot::Dynamic</a>, but specialized for hrp2 robots [needs hrp2-dynamics] </li>
-<li><a class="el" href="classsot_1_1_dynamic_hrp2__10.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics computations...">sot::DynamicHrp2_10</a> - same as previous, optimized for the hrp2-10 robot [needs hrp210optimized] </li>
-<li><a class="el" href="classsot_1_1_dynamic_hrp2__10__old.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics computations...">sot::DynamicHrp2_10_old</a> [needs hrp210optimized]</li>
+<li><a class="el" href="a00008.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics computations...">sot::DynamicHrp2</a> - same as <a class="el" href="a00007.html" title="This class provides an inverse dynamic model of the robot. More precisely it wraps the newton euler a...">sot::Dynamic</a>, but specialized for hrp2 robots [needs hrp2-dynamics] </li>
+<li><a class="el" href="a00009.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics computations...">sot::DynamicHrp2_10</a> - same as previous, optimized for the hrp2-10 robot [needs hrp210optimized] </li>
+<li><a class="el" href="a00010.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics computations...">sot::DynamicHrp2_10_old</a> [needs hrp210optimized]</li>
 </ul>
 <p>See each entity's documentation page for more information (when available).</p>
 <h2><a class="anchor" id="References"></a>
