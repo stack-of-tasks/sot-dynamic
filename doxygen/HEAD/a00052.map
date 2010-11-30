@@ -1,8 +1,8 @@
 <map id="G" name="G">
 <area shape="rect" href="$a00011.html" title="sot::ForceCompensation" alt="" coords="201,5,377,32"/>
 <area shape="rect" href="$a00012.html" title="sot::ForceCompensationPlugin" alt="" coords="427,5,643,32"/>
-<area shape="rect" href="dynamic&#45;graph.doxytag$classboost_1_1noncopyable.html" title="boost::noncopyable" alt="" coords="5,157,152,184"/>
-<area shape="rect" href="dynamic&#45;graph.doxytag$classdynamicgraph_1_1_entity.html" title="dynamicgraph::Entity" alt="" coords="212,157,367,184"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$a00019.html" title="boost::noncopyable" alt="" coords="5,157,152,184"/>
+<area shape="rect" href="dynamic&#45;graph.doxytag$a00009.html" title="dynamicgraph::Entity" alt="" coords="212,157,367,184"/>
 <area shape="rect" href="$a00006.html" title="sot::AngleEstimator" alt="" coords="461,56,608,82"/>
 <area shape="rect" href="$a00007.html" title="This class provides an inverse dynamic model of the robot. More precisely it wraps the newton euler a..." alt="" coords="483,106,587,133"/>
 <area shape="rect" href="$a00013.html" title="sot::IntegratorForce" alt="" coords="461,157,608,184"/>
