@@ -1,5 +1,12 @@
 <map id="G" name="G">
-<area shape="rect" href="$a00018.html" title="sot::WaistAttitudeFromSensor" alt="" coords="32,161,243,188"/>
-<area shape="rect" href="dynamic&#45;graph.doxytag$a00009.html" title="dynamicgraph::Entity" alt="" coords="60,84,215,111"/>
-<area shape="rect" href="dynamic&#45;graph.doxytag$a00019.html" title="boost::noncopyable" alt="" coords="64,7,211,33"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00008.html" title="dynamicgraph::Entity" alt="" coords="1747,65,1901,92"/>
+<area shape="rect" title="STL class." alt="" coords="337,108,423,135"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00030.html" title="dynamicgraph::SignalBase\&lt; int \&gt;" alt="" coords="743,108,980,135"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00030.html" title="dynamicgraph::SignalBase\&lt; Time \&gt;" alt="" coords="736,209,987,236"/>
+<area shape="rect" title="STL class." alt="" coords="5,108,189,135"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00033.html" title="dynamicgraph::SignalPtr\&lt; MatrixRotation, int \&gt;" alt="" coords="1663,209,1985,236"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00027.html" title="dynamicgraph::Signal\&lt; T, Time \&gt;" alt="" coords="1224,260,1459,287"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00033.html" title="dynamicgraph::SignalPtr\&lt; MatrixHomogeneous, int \&gt;" alt="" coords="1643,260,2005,287"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00034.html" title="dynamicgraph::SignalTimeDependent\&lt; VectorRollPitchYaw, int \&gt;" alt="" coords="1609,311,2039,337"/>
+<area shape="rect" href="dynamic-graph.doxytag$a00035.html" title="dynamicgraph::TimeDependency\&lt; Time \&gt;" alt="" coords="716,357,1007,384"/>
 </map>

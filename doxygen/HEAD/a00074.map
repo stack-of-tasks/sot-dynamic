@@ -1,5 +1,5 @@
 <map id="G" name="G">
-<area shape="rect" href="dynamic&#45;graph.doxytag$a00009.html" title="dynamicgraph::Entity" alt="" coords="5,84,160,111"/>
-<area shape="rect" href="dynamic&#45;graph.doxytag$a00019.html" title="boost::noncopyable" alt="" coords="9,7,156,34"/>
-<area shape="rect" href="$a00011.html" title="sot::ForceCompensation" alt="" coords="184,84,360,111"/>
+<area shape="rect" href="sot-core.doxytag$a00059.html" title="sot::MatrixRotation" alt="" coords="8,87,147,113"/>
+<area shape="rect" href="jrl-mal.doxytag$a00002.html" title="maal::boost::Matrix" alt="" coords="5,7,149,33"/>
+<area shape="rect" href="jrl-mal.doxytag$a00006.html" title="maal::boost::Vector" alt="" coords="287,87,433,113"/>
 </map>
