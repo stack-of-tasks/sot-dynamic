@@ -20,7 +20,7 @@ Section: libs
 Package: libsot-dynamic-dev
 Section: libdevel
 Architecture: any
-Depends: libsot-dynamic1.1.1 (= ${binary:Version}), ${misc:Depends}
+Depends: libsot-core (>= 1.1.1), libsot-dynamic1.1.1 (= ${binary:Version}), ${misc:Depends}
 Suggests: libsot-dynamic-doc
 Description: dynamic computation plug-in for dynamic graph
  This package provides dynamic computation plug-in for dynamic-graph.
@@ -31,7 +31,7 @@ Description: dynamic computation plug-in for dynamic graph
 
 Package: libsot-dynamic1.1.1
 Architecture: any
-Depends: libsot-core (>= 1.1.1), ${shlibs:Depends}, ${misc:Depends}
+Depends:  ${shlibs:Depends}, ${misc:Depends}
 Description: dynamic computation plug-in for dynamic graph
  This package provides dynamic computation plug-in for dynamic-graph.
  It provides support for jrl-dynamics and abstract-robot-dynamics algorithms
