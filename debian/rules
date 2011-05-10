@@ -8,12 +8,16 @@
 
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
+export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:$PKG_CONFIG_PATH
+CFLAGS = -O3 -DNDEBUG
+CXXFLAGS = -O3 -DNDEBUG
+
 
 # FIXME: test suite fails for now.
 export DEB_BUILD_OPTIONS=nocheck
 
 override_dh_auto_configure:
-	dh_auto_configure -- -DCMAKE_BUILD_TYPE=RELEASExs -DGENERATE_DOC=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots
+	dh_auto_configure -- -DCMAKE_BUILD_TYPE=RELEASExs -DGENERATE_DOC=ON -DCMAKE_INSTALL_PREFIX=/opt/openrobots	
 
 # Remove useless ldconfig call.
 override_dh_makeshlibs:
