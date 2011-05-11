@@ -29,6 +29,7 @@ Description: dynamic computation plug-in for dynamic graph
  .
  This package contains development files (headers and pkg-config file).
 
+
 Package: libsot-dynamic1.1.1
 Architecture: any
 Depends:  ${shlibs:Depends}, ${misc:Depends}
