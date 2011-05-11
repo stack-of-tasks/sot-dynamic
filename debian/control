@@ -53,3 +53,15 @@ Description: documentation for the dynamic computation plug-in for dynamic graph
  into the dynamic-graph data-flow.
  .
  This package contains the Doxygen documentation.
+
+Package: libsot-dynamic-dbg
+Architecture: any
+Section: debug
+Priority: extra
+Depends:  libsot-core (= 1.1.1)
+Description: debugging symbols for libsot-dynamic
+ This package provides dynamic computation plug-in for dynamic-graph.
+ It provides support for jrl-dynamics and abstract-robot-dynamics algorithms
+ into the dynamic-graph data-flow.
+  .
+ This package contains the debugging symbols for libsot-dynamic.
