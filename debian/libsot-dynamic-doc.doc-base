@@ -5,5 +5,5 @@ Abstract: Doxygen documentation of sot-dynamic.
 Section: Programming
 
 Format: HTML
-Index: /usr/share/doc/sot-dynamic/html/index.html
-Files: /usr/share/doc/sot-dynamic/html/*.html
+Index: /opt/openrobots/share/doc/sot-dynamic/html/index.html
+Files: /opt/openrobots/share/doc/sot-dynamic/html/*.html
