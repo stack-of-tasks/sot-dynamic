@@ -171,10 +171,12 @@ static void expMatrix( const ml::Matrix& MiB,
 /* --- SIGNALS -------------------------------------------------------------- */
 /* --- SIGNALS -------------------------------------------------------------- */
 
-/* The derivative of the signal is such that: M v_dot + B v = f. We deduce:
- * v_dot =  M^-1 (f - Bv)
- * Using Exact method: 
- * dv = exp( M^-1.B.t) ( v0-B^-1.f ) + B^-1.f
+/* The derivative of the signal is such that: M v_dot(t) + B v(t) = F(t). We deduce:
+ * v_dot = - M^-1.B.v + M^-1.F
+ * Using exponential Euler method:
+ * v_n+1 = exp( -M^-1.B.dt ) . v_n + ( 1 - exp( -M^-1.B.dt ) ).B^-1.F_n
+ * Or:
+ * v_n+1 = exp( -M^-1.B.dt ) . ( v_n - B^-1.F_n ) + B^-1.F_n
  */
 
 ml::Vector& IntegratorForceExact::

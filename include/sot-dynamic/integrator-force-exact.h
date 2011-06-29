@@ -63,6 +63,16 @@ namespace dg = dynamicgraph;
 /* --- CLASS ----------------------------------------------------------- */
 /* --------------------------------------------------------------------- */
 
+/*! \class IntegratorForceExact
+  \brief This class computes velocity from equation 
+  \f$ M {\dot v}(t) + B v(t) = F(t) \f$ 
+  using exponential Euler method.
+
+
+  Warning: Despite its name, this class does not compute the exact theoretical
+  value of the velocity.
+ */
+
 class SOTINTEGRATORFORCEEXACT_EXPORT IntegratorForceExact
 :public IntegratorForce
 {
