@@ -27,6 +27,9 @@
 </div>
 <div class="contents">
 <h1>sot::IntegratorForceExact Class Reference</h1><!-- doxytag: class="sot::IntegratorForceExact" --><!-- doxytag: inherits="sot::IntegratorForce" -->
+<p>This class computes velocity from equation <img class="formulaInl" alt="$ M {\dot v}(t) + B v(t) = F(t) $" src="form_0.png"/> using exponential Euler method.  
+<a href="#_details">More...</a></p>
+
 <p><code>#include &lt;sot-dynamic/integrator-force-exact.h&gt;</code></p>
 <div class="dynheader">
 Inheritance diagram for sot::IntegratorForceExact:</div>
@@ -52,6 +55,9 @@ Collaboration diagram for sot::IntegratorForceExact:</div>
 <tr><td colspan="2"><h2>Static Public Attributes</h2></td></tr>
 <tr><td class="memItemLeft" align="right" valign="top">static const std::string&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="a00014.html#aa4b5fb009a52716836d76bcb5fa0bf5f">CLASS_NAME</a></td></tr>
 </table>
+<hr/><a name="_details"></a><h2>Detailed Description</h2>
+<p>This class computes velocity from equation <img class="formulaInl" alt="$ M {\dot v}(t) + B v(t) = F(t) $" src="form_0.png"/> using exponential Euler method. </p>
+<p>Warning: Despite its name, this class does not compute the exact theoretical value of the velocity. </p>
 <hr/><h2>Constructor &amp; Destructor Documentation</h2>
 <a class="anchor" id="a665ab19386a738705c4ec22f3d316e29"></a><!-- doxytag: member="sot::IntegratorForceExact::IntegratorForceExact" ref="a665ab19386a738705c4ec22f3d316e29" args="(const std::string &amp;name)" -->
 <div class="memitem">

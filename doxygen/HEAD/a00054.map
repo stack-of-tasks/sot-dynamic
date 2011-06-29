@@ -10,7 +10,7 @@
 <area shape="rect" href="$a00008.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics..." alt="" coords="561,5,697,32"/>
 <area shape="rect" href="$a00009.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics..." alt="" coords="549,56,709,83"/>
 <area shape="rect" href="$a00010.html" title="Modification of the classic dynamic class to get the optimized version of the kinematics..." alt="" coords="537,107,721,133"/>
-<area shape="rect" href="$a00014.html" title="sot::IntegratorForceExact" alt="" coords="539,157,720,184"/>
+<area shape="rect" href="$a00014.html" title="This class computes velocity from equation &#160;using exponential Euler method." alt="" coords="539,157,720,184"/>
 <area shape="rect" href="$a00015.html" title="sot::IntegratorForceRK4" alt="" coords="544,208,715,235"/>
 <area shape="rect" href="$a00019.html" title="sot::WaistPoseFromSensorAndContact" alt="" coords="497,259,761,285"/>
 <area shape="rect" href="$a00011.html" title="sot::ForceCompensation" alt="" coords="7,5,183,32"/>
