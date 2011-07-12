@@ -32,7 +32,7 @@ Description: dynamic computation plug-in for dynamic graph
 
 Package: libsot-dynamic1.1.1
 Architecture: any
-Depends:  libjrl-dynamics1.19.3 (>= 1.19.3), libhrp2-dynamics1.5.2 (>= 1.5.0), ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: dynamic computation plug-in for dynamic graph
  This package provides dynamic computation plug-in for dynamic-graph.
  It provides support for jrl-dynamics and abstract-robot-dynamics algorithms
