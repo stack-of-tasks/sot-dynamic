@@ -20,7 +20,7 @@ Section: libs
 Package: libsot-dynamic-dev
 Section: libdevel
 Architecture: any
-Depends: libjrl-dynamics-dev (>= 1.19.3), libhrp2-dynamics-dev (>= 1.5.2), libsot-core-dev (>= 1.1.1), libsot-dynamic1.1.1 (= ${binary:Version}), ${misc:Depends}
+Depends: libjrl-dynamics-dev (>= 1.19.3), libhrp2-dynamics-dev (>= 1.5.2), libhrp2-10-optimized-dev (>= 1.0.1), libsot-core-dev (>= 1.1.1), libsot-dynamic1.1.1 (= ${binary:Version}), ${misc:Depends}
 Suggests: libsot-dynamic-doc
 Description: dynamic computation plug-in for dynamic graph
  This package provides dynamic computation plug-in for dynamic-graph.
