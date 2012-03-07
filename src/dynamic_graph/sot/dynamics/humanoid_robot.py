@@ -21,6 +21,7 @@ from dynamic_graph.tools import addTrace
 from dynamic_graph.sot.core import OpPointModifier, Multiply_of_matrixHomo
 from dynamic_graph.sot.core.derivator import Derivator_of_Vector
 from dynamic_graph.sot.core.feature_position import FeaturePosition
+from dynamic_graph.sot.core.feature_posture import FeaturePosture
 from dynamic_graph.sot.core import RobotSimu, FeatureGeneric, \
     FeatureJointLimits, Task, Constraint, GainAdaptive, SOT
 
@@ -285,6 +286,18 @@ class AbstractHumanoidRobot (object):
             plug (self.stabilizer.zmpDes, self.stabilizer.zmp)
         return self.stabilizer
 
+
+    def createPostureFeatureAndTask (self, featureName, taskName, gain = 100):
+        featurePosture = FeaturePosture (featureName)
+        featurePosture.setPosture (self.halfSitting)
+        plug (self.device.state, featurePosture.state)
+        for i in range (6, len (self.halfSitting)):
+            featurePosture.selectDof (i, True)
+        postureTask = Task (taskName)
+        postureTask.add (featureName)
+        postureTask.controlGain.value = gain
+        return (featurePosture, postureTask)
+
     def createFrame(self, frameName, transformation, operationalPoint):
         frame = OpPointModifier(frameName)
         frame.setTransformation(transformation)
@@ -362,6 +375,12 @@ class AbstractHumanoidRobot (object):
                 memberName += i.capitalize()
             setattr(self, memberName, self.features[op])
 
+        # --- posture task ---
+        (self.features ['posture'], self.tasks ['posture']) = \
+            self.createPostureFeatureAndTask ('{0}_feature_posture'.format
+                                              (self.name),
+                                              '{0}_task_posture'.format
+                                              (self.name))
         # --- zmp and stabilizer ---
         self.tasks ['com'] = self.createZmpAndStabilizer ()
 
@@ -424,6 +443,9 @@ class AbstractHumanoidRobot (object):
         self.addTrace(self.stabilizer.name, 'comDes')
         self.addTrace(self.stabilizer.name, 'com')
         self.addTrace(self.stabilizer.name, 'comdot')
+
+        # Posture
+        self.addTrace (self.tasks ['posture'].name, 'error')
 
         # Device
         for s in self.tracedSignals['device']:
