@@ -56,6 +56,7 @@ SET(libs
   integrator-force
   angle-estimator
   waist-attitude-from-sensor
+  zmp-from-forces
   )
 
 LIST(APPEND libs dynamic)
