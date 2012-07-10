@@ -55,6 +55,7 @@ SET(libs
   integrator-force-rk4
   integrator-force
   angle-estimator
+  stabilizer
   waist-attitude-from-sensor
   zmp-from-forces
   )
