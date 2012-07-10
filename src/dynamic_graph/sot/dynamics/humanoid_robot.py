@@ -19,14 +19,14 @@ from __future__ import print_function
 from dynamic_graph.tracer_real_time import TracerRealTime
 from dynamic_graph.tools import addTrace
 from dynamic_graph.sot import SE3, R3, SO3
-from dynamic_graph.sot.core import OpPointModifier
+from dynamic_graph.sot.core import OpPointModifier, Multiply_of_matrixHomo
 from dynamic_graph.sot.core.derivator import Derivator_of_Vector
 from dynamic_graph.sot.core.feature_position import FeaturePosition
 from dynamic_graph.sot.core import RobotSimu, FeatureGeneric, \
     FeatureJointLimits, Task, Constraint, GainAdaptive, SOT
 
 from dynamic_graph.sot.dynamics.parser import Parser
-from dynamic_graph.sot.dynamics import AngleEstimator
+from dynamic_graph.sot.dynamics import AngleEstimator, ZmpFromForces, Stabilizer
 
 from dynamic_graph import plug
 
@@ -56,7 +56,6 @@ class AbstractHumanoidRobot (object):
       - zmpRef: input (vector),
       - comRef: input (vector).
       - com:    output (vector)
-      - comSelec input (flag)
       - comdot: input (vector) reference velocity of the center of mass
 
     """
@@ -110,18 +109,6 @@ class AbstractHumanoidRobot (object):
     """
     dimension = None
     """The configuration size."""
-
-    featureCom = None
-    """
-    This generic feature takes as input the robot center of mass
-    and as desired value the featureComDes feature of this class.
-    """
-    featureComDes = None
-    """
-    The feature associated to the robot center of mass desired
-    position.
-    """
-    comTask = None
 
     features = dict()
     """
@@ -251,26 +238,6 @@ class AbstractHumanoidRobot (object):
         for op in self.OperationalPoints:
             model.createOpPoint(op, op)
 
-    def createCenterOfMassFeatureAndTask(self,
-                                         featureName, featureDesName,
-                                         taskName,
-                                         selec = '011',
-                                         gain = 1.):
-        self.dynamic.com.recompute(0)
-        self.dynamic.Jcom.recompute(0)
-
-        featureCom = FeatureGeneric(featureName)
-        plug(self.dynamic.com, featureCom.errorIN)
-        plug(self.dynamic.Jcom, featureCom.jacobianIN)
-        featureCom.selec.value = selec
-        featureComDes = FeatureGeneric(featureDesName)
-        featureComDes.errorIN.value = self.dynamic.com.value
-        featureCom.setReference(featureComDes.name)
-        comTask = Task(taskName)
-        comTask.add(featureName)
-        comTask.controlGain.value = gain
-        return (featureCom, featureComDes, comTask)
-
     def createOperationalPointFeatureAndTask(self,
                                              operationalPointName,
                                              featureName,
@@ -289,13 +256,32 @@ class AbstractHumanoidRobot (object):
         task.controlGain.value = gain
         return (feature, task)
 
-    def createBalanceTask (self, taskName, gain = 1.):
-        task = Task (taskName)
-        task.add (self.featureCom.name)
-        task.add (self.leftAnkle.name)
-        task.add (self.rightAnkle.name)
-        task.controlGain.value = gain
-        return task
+    def createZmpAndStabilizer (self):
+        self.stabilizer = Stabilizer (self.name + '_stabilizer')
+        self.dynamic.com.recompute (0)
+        self.stabilizer.comDes.value = self.dynamic.com.value
+        plug (self.dynamic.com, self.stabilizer.com)
+        plug (self.dynamic.Jcom, self.stabilizer.Jcom)
+
+        if hasattr (self.device, 'forceLLEG'):
+            self.zmpFromForces = ZmpFromForces (self.name + '_zmpFromForces')
+
+            prodLeft = Multiply_of_matrixHomo (self.name + '_prodLeft')
+            plug (self.leftAnkle.position, prodLeft.sin1)
+            prodLeft.sin2.value = self.forceSensorInLeftAnkle
+            plug (prodLeft.sout, self.zmpFromForces.sensorPosition_0)
+            plug (self.device.forceLLEG, self.zmpFromForces.force_0)
+
+            prodRight = Multiply_of_matrixHomo (self.name + '_prodRight')
+            plug (self.rightAnkle.position, prodRight.sin1)
+            prodRight.sin2.value = self.forceSensorInRightAnkle
+            plug (prodRight.sout, self.zmpFromForces.sensorPosition_1)
+            plug (self.device.forceRLEG, self.zmpFromForces.force_1)
+
+            plug (self.zmpFromForces.zmp, self.stabilizer.zmp)
+        else:
+            plug (self.stabilizer.zmpDes, self.stabilizer.zmp)
+        return self.stabilizer
 
     def createFrame(self, frameName, transformation, operationalPoint):
         frame = OpPointModifier(frameName)
@@ -315,8 +301,7 @@ class AbstractHumanoidRobot (object):
         self.comRef = self.stabilizer.comDes
         self.zmpRef = self.stabilizer.zmpDes
         self.com = self.dynamic.com
-        self.comSelec = self.featureCom.selec
-        self.comdot = self.featureComDes.errordotIN
+        self.comdot = self.stabilizer.comdot
 
     def initializeRobot(self):
         """
@@ -360,13 +345,6 @@ class AbstractHumanoidRobot (object):
 
         self.initializeOpPoints(self.dynamic)
 
-        # --- center of mass ------------
-        (self.featureCom, self.featureComDes, self.comTask) = \
-            self.createCenterOfMassFeatureAndTask(
-            '{0}_feature_com'.format(self.name),
-            '{0}_feature_ref_com'.format(self.name),
-            '{0}_task_com'.format(self.name))
-
         # --- operational points tasks -----
         self.features = dict()
         self.tasks = dict()
@@ -382,9 +360,8 @@ class AbstractHumanoidRobot (object):
                 memberName += i.capitalize()
             setattr(self, memberName, self.features[op])
 
-        # --- balance task --- #
-        self.tasks ['balance'] =\
-            self.createBalanceTask ('{0}_task_balance'.format (self.name))
+        # --- zmp and stabilizer ---
+        self.tasks ['com'] = self.createZmpAndStabilizer ()
 
         # --- additional frames ---
         self.frames = dict()
@@ -442,8 +419,9 @@ class AbstractHumanoidRobot (object):
             self.addTrace(self.tasks[s].name, 'error')
 
         # Com
-        self.addTrace(self.featureComDes.name, 'errorIN')
-        self.addTrace(self.comTask.name, 'error')
+        self.addTrace(self.stabilizer.name, 'comDes')
+        self.addTrace(self.stabilizer.name, 'com')
+        self.addTrace(self.stabilizer.name, 'comdot')
 
         # Device
         for s in self.tracedSignals['device']:
@@ -507,7 +485,6 @@ class AbstractHumanoidRobot (object):
 
         self.dynamic.com.recompute(self.device.state.time+1)
         self.dynamic.Jcom.recompute(self.device.state.time+1)
-        self.featureComDes.errorIN.value = self.dynamic.com.value
 
         for op in self.OperationalPoints:
             self.dynamic.signal(op).recompute(self.device.state.time+1)

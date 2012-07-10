@@ -40,11 +40,11 @@ namespace sot {
       DYNAMIC_GRAPH_ENTITY_DECL();
     public:
       static const unsigned int footNumber = 2;
-      ZmpFromForces (const std::string& name) : 
+      ZmpFromForces (const std::string& name) :
 	Entity (name),
 	zmpSOUT_ (CLASS_NAME + "::output(Vector)::zmp")
       {
-	zmpSOUT_.setFunction (boost::bind 
+	zmpSOUT_.setFunction (boost::bind
 			      (&ZmpFromForces::computeZmp, this, _1, _2));
 	signalRegistration (zmpSOUT_);
 	for (unsigned int i=0; i<footNumber; i++) {
@@ -107,9 +107,9 @@ namespace sot {
 	    sumZmpz += fz [i] * M (2,3);
 	  }
 	}
-	zmp (0) = sumZmpx / fnormal;	  
-	zmp (1) = sumZmpy / fnormal;	  
-	zmp (2) = sumZmpz / fnormal;	  
+	zmp (0) = sumZmpx / fnormal;
+	zmp (1) = sumZmpy / fnormal;
+	zmp (2) = sumZmpz / fnormal;
 	return zmp;
       }
       // Force as measured by force sensor on the foot
