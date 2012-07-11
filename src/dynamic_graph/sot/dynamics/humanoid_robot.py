@@ -311,8 +311,8 @@ class AbstractHumanoidRobot (object):
         """
         For portability, make some signals accessible as attributes.
         """
-        self.comRef = self.featureComDes.errorIN
-        self.zmpRef = self.device.zmp
+        self.comRef = self.stabilizer.comDes
+        self.zmpRef = self.stabilizer.zmpDes
         self.com = self.dynamic.com
         self.comSelec = self.featureCom.selec
         self.comdot = self.featureComDes.errordotIN
@@ -457,6 +457,8 @@ class AbstractHumanoidRobot (object):
         if self.enableAccelerationDerivator:
             self.addTrace(self.accelerationDerivator.name, 'sout')
 
+        if hasattr (self, 'zmpFromForces'):
+            self.addTrace (self.zmpFromForces.name, 'zmp')
 
     def __init__(self, name, tracer = None):
         self.name = name
