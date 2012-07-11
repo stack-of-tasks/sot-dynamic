@@ -178,7 +178,7 @@ class AbstractHumanoidRobot (object):
     tracedSignals = {
         'dynamic': ["com", "zmp", "angularmomentum",
                   "position", "velocity", "acceleration"],
-        'device': ['zmp', 'control', 'state']
+        'device': ['control', 'state']
         }
 
     """
