@@ -257,9 +257,12 @@ class AbstractHumanoidRobot (object):
         return (feature, task)
 
     def createZmpAndStabilizer (self):
+        self.dynamic.com.recompute(0)
+        self.dynamic.Jcom.recompute(0)
         self.stabilizer = Stabilizer (self.name + '_stabilizer')
         self.dynamic.com.recompute (0)
         self.stabilizer.comDes.value = self.dynamic.com.value
+        self.stabilizer.comdot.value = (0.,0.,0.,)
         plug (self.dynamic.com, self.stabilizer.com)
         plug (self.dynamic.Jcom, self.stabilizer.Jcom)
 
