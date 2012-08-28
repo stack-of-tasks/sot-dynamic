@@ -107,9 +107,13 @@ namespace sot {
 	    sumZmpz += fz [i] * M (2,3);
 	  }
 	}
-	zmp (0) = sumZmpx / fnormal;
-	zmp (1) = sumZmpy / fnormal;
-	zmp (2) = sumZmpz / fnormal;
+	if (fnormal != 0) {
+	  zmp (0) = sumZmpx / fnormal;
+	  zmp (1) = sumZmpy / fnormal;
+	  zmp (2) = sumZmpz / fnormal;
+	} else {
+	    zmp.fill (0.);
+	}
 	return zmp;
       }
       // Force as measured by force sensor on the foot
