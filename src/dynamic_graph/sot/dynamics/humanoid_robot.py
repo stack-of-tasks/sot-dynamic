@@ -166,7 +166,7 @@ class AbstractHumanoidRobot (object):
     tracedSignals = {
         'dynamic': ["com", "zmp", "angularmomentum",
                   "position", "velocity", "acceleration"],
-        'device': ['control', 'state']
+        'device': ['control', 'state', 'forceLLEG', 'forceRLEG']
         }
 
     """
@@ -261,30 +261,22 @@ class AbstractHumanoidRobot (object):
         self.dynamic.com.recompute(0)
         self.dynamic.Jcom.recompute(0)
         self.stabilizer = Stabilizer (self.name + '_stabilizer')
-        self.dynamic.com.recompute (0)
         self.stabilizer.comDes.value = self.dynamic.com.value
         self.stabilizer.comdot.value = (0.,0.,0.,)
         plug (self.dynamic.com, self.stabilizer.com)
         plug (self.dynamic.Jcom, self.stabilizer.Jcom)
-
-        if hasattr (self.device, 'forceLLEG'):
-            self.zmpFromForces = ZmpFromForces (self.name + '_zmpFromForces')
-
-            prodLeft = Multiply_of_matrixHomo (self.name + '_prodLeft')
-            plug (self.leftAnkle.position, prodLeft.sin1)
-            prodLeft.sin2.value = self.forceSensorInLeftAnkle
-            plug (prodLeft.sout, self.zmpFromForces.sensorPosition_0)
-            plug (self.device.forceLLEG, self.zmpFromForces.force_0)
-
-            prodRight = Multiply_of_matrixHomo (self.name + '_prodRight')
-            plug (self.rightAnkle.position, prodRight.sin1)
-            prodRight.sin2.value = self.forceSensorInRightAnkle
-            plug (prodRight.sout, self.zmpFromForces.sensorPosition_1)
-            plug (self.device.forceRLEG, self.zmpFromForces.force_1)
-
-            plug (self.zmpFromForces.zmp, self.stabilizer.zmp)
-        else:
-            plug (self.stabilizer.zmpDes, self.stabilizer.zmp)
+        plug (self.device.forceLLEG, self.stabilizer.force0)
+        plug (self.device.forceRLEG, self.stabilizer.force1)
+        # Position of left foot
+        prodLeft = Multiply_of_matrixHomo (self.name + '_prodLeft')
+        plug (self.leftAnkle.position, prodLeft.sin1)
+        prodLeft.sin2.value = self.forceSensorInLeftAnkle
+        plug (prodLeft.sout, self.stabilizer.leftFootPosition)
+        # position of right foot
+        prodRight = Multiply_of_matrixHomo (self.name + '_prodRight')
+        plug (self.rightAnkle.position, prodRight.sin1)
+        prodRight.sin2.value = self.forceSensorInRightAnkle
+        plug (prodRight.sout, self.stabilizer.rightFootPosition)
         return self.stabilizer
 
 
@@ -315,7 +307,6 @@ class AbstractHumanoidRobot (object):
         For portability, make some signals accessible as attributes.
         """
         self.comRef = self.stabilizer.comDes
-        self.zmpRef = self.stabilizer.zmpDes
         self.com = self.dynamic.com
         self.comdot = self.stabilizer.comdot
 
@@ -384,6 +375,7 @@ class AbstractHumanoidRobot (object):
                                               (self.name))
         # --- zmp and stabilizer ---
         self.tasks ['com'] = self.createZmpAndStabilizer ()
+        self.comTask = self.tasks ['com']
 
         # --- additional frames ---
         self.frames = dict()
@@ -459,9 +451,7 @@ class AbstractHumanoidRobot (object):
             self.addTrace(self.velocityDerivator.name, 'sout')
         if self.enableAccelerationDerivator:
             self.addTrace(self.accelerationDerivator.name, 'sout')
-
-        if hasattr (self, 'zmpFromForces'):
-            self.addTrace (self.zmpFromForces.name, 'zmp')
+        self.addTrace (self.stabilizer.name, 'flexAngles')
 
     def __init__(self, name, tracer = None):
         self.name = name
