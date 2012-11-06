@@ -40,6 +40,7 @@ namespace sot {
     using dynamicgraph::SignalTimeDependent;
     using dynamicgraph::Vector;
     using dynamicgraph::Matrix;
+    using dynamicgraph::Entity;
     using dynamicgraph::sot::VectorMultiBound;
     using dynamicgraph::command::makeCommandVoid0;
     using dynamicgraph::command::docCommandVoid0;
@@ -65,6 +66,11 @@ namespace sot {
     {
       DYNAMIC_GRAPH_ENTITY_DECL ();
     public:
+      // Constant values
+      static double m_;
+      static double g_;
+      static double zeta_;
+
       /// Constructor by name
       Stabilizer(const std::string& inName) :
 	TaskAbstract(inName),
@@ -413,6 +419,203 @@ namespace sot {
       Vector debug_;
     }; // class Stabilizer
 
+    double Stabilizer::m_ = 56.;
+    double Stabilizer::g_ = 9.81;
+    double Stabilizer::zeta_ = .80;
+
     DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (Stabilizer, "Stabilizer");
+
+    // This namespace contains a few classes related to the dynamics and
+    // observation of the ankle flexibility of a humanoid robot
+    //
+    // The state of the flexibility is represented by vector
+    //                   .    .
+    //  x = (xi, theta, xi, theta, k     )
+    //                              theta
+    // where xi is the position of the center of mass in a moving frame rotating
+    // around the contact foot,
+    // theta is the rotation angle of the moving frame with respect to the
+    // world frame
+    // k      is the angular stiffness of the flexibility
+    //  theta
+
+    namespace flexibility {
+      class Function : public Entity
+      {
+      protected:
+	SignalPtr < Vector, int > stateSIN_;
+	double dt_;
+
+      public:
+	Function (const std::string& name) : Entity (name),
+	  stateSIN_ (0, "flexibility::Function(" + name +
+		     ")::input(vector)::state"),
+	  dt_ (.005)
+	{
+	  signalRegistration (stateSIN_);
+	  addCommand ("setTimePeriod",
+		      makeDirectSetter (*this, &dt_,
+					docDirectSetter ("time period",
+							 "float")));
+	  addCommand ("getTimePeriod",
+		      makeDirectGetter (*this, &dt_,
+					docDirectGetter ("time period",
+							 "float")));
+	}
+      }; // class Function
+      //
+      // State transition of time discretized system
+      //
+      //   x    =  f (x , u )
+      //    k+1        k   k
+      //
+      //   with
+      //        ..
+      //   u  = xi,   x  = x (k dt)
+      //    k          k
+      //
+      class f : public Function
+      {
+	SignalPtr <Vector, int> controlSIN_;
+	Signal <Vector, int> newStateSOUT_;
+	Signal <Matrix, int> jacobianSOUT_;
+
+	DYNAMIC_GRAPH_ENTITY_DECL();
+	f (const std::string& name) :
+	  Function (name),
+	  controlSIN_ (0, "flexibility_f(" + name +
+		       ")::input(vector)::control"),
+	  newStateSOUT_ ("flexibility_f(" + name +
+			 ")::output(vector)::newState"),
+	  jacobianSOUT_ ("flexibility_f(" + name +
+			 ")::output(vector)::jacobian")
+
+	{
+	  signalRegistration (controlSIN_ << newStateSOUT_ << jacobianSOUT_);
+	  newStateSOUT_.setFunction (boost::bind (&f::computeNewState, this, _1, _2));
+	  jacobianSOUT_.setFunction (boost::bind (&f::computeJacobian, this, _1, _2));
+	}
+
+	Vector& computeNewState (Vector& x, const int&)
+	{
+	  double m = Stabilizer::m_;
+	  double g = Stabilizer::g_;
+	  double zeta = Stabilizer::zeta_;
+
+	  const Vector& state = stateSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.accessCopy ();
+
+	  double xi = state (0);
+	  double th = state (1);
+	  double dxi = state (2);
+	  double dth = state (3);
+	  double kth = state (4);
+
+	  double u = control (0);
+	  double d2 = (xi*xi+zeta*zeta);
+	  x.resize (5);
+
+	  x (0) = xi + dt_ * dxi;
+	  x (1) = th + dt_ * dth;
+	  x (2) = dxi + dt_ * u;
+	  x (3) = dth + dt_* (-kth*th - m*g*(cos (th)*xi - sin (th)*zeta) +
+			     m*(zeta*u -2*th*xi*dxi))/(m*d2);
+	  x (4) = kth;
+
+	  return x;
+	}
+	Matrix& computeJacobian (Matrix& J, const int&)
+	{
+	  double m = Stabilizer::m_;
+	  double g = Stabilizer::g_;
+	  double zeta = Stabilizer::zeta_;
+
+	  const Vector& state = stateSIN_.accessCopy ();
+
+	  double xi = state (0);
+	  double th = state (1);
+	  double dxi = state (2);
+	  double dth = state (3);
+	  double kth = state (4);
+
+	  double d2 = (xi*xi+zeta*zeta);
+
+	  J.resize (5, 5);
+	  J.fill (0.);
+	  J (0, 0) = 1.;
+	  J (0, 2) = dt_;
+	  J (1, 1) = 1.;
+	  J (1, 3) = dt_;
+	  J (2, 2) = 1.;
+	  J (3, 0) = dt_*(-g*cos (th) -2*dth*dxi)/d2;
+	  J (3, 1) = dt_*(-kth + m*g*(sin (th)*xi + cos (th)*zeta))/
+	    (m*d2);
+	  J (3, 2) = -2*dt_*dth*xi/d2;
+	  J (3, 3) = 1. - 2.*dt_*xi*dxi/d2;
+	  J (3, 4) = -dt_*th/(m*d2);
+
+	  J (4, 4) = 1.;
+
+	  return J;
+	}
+      };  // class f
+
+      //
+      // Observation function
+      //
+      class h : public Function
+      {
+	SignalTimeDependent <Vector, int> observationSOUT_;
+	SignalTimeDependent <Matrix, int> jacobianSOUT_;
+
+	DYNAMIC_GRAPH_ENTITY_DECL();
+	h (const std::string& name) :
+	  Function (name),
+	  observationSOUT_ ("flexibility_h(" + name +
+			    ")::output(vector)::observation"),
+	  jacobianSOUT_ ("flexibility_H(" + name +
+			 ")::output(vector)::jacobian")
+	{
+	  signalRegistration (observationSOUT_ << jacobianSOUT_);
+	  observationSOUT_.setFunction
+	    (boost::bind (&h::computeObservation, this, _1, _2));
+	  observationSOUT_.addDependency (stateSIN_);
+	  jacobianSOUT_.setFunction (boost::bind (&h::computeJacobian, this, _1, _2));
+	  jacobianSOUT_.addDependency (stateSIN_);
+	}
+
+	Vector& computeObservation (Vector& obs, const int& time)
+	{
+	  const Vector& state = stateSIN_.access (time);
+
+	  double th = state (1);
+	  double kth = state (4);
+
+	  obs.resize (1);
+	  obs (0) = kth * th;
+
+	  return obs;
+	}
+	Matrix& computeJacobian (Matrix& J, const int& time)
+	{
+	  const Vector& state = stateSIN_.access (time);
+
+	  double th = state (1);
+	  double kth = state (4);
+
+	  J.resize (1, 5);
+	  J.fill (0.);
+	  J (0, 1) = kth;
+	  J (0, 4) = th;
+
+	  return J;
+	}
+      }; // class h
+
+      DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (f, "flexibility_f");
+      DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (h, "flexibility_h");
+
+    } // namespace flexibility
+
   } // namespace dynamic
 } // namespace sot
