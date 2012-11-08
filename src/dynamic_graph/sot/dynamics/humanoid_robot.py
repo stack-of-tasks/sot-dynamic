@@ -19,7 +19,7 @@ from __future__ import print_function
 from dynamic_graph.tracer_real_time import TracerRealTime
 from dynamic_graph.tools import addTrace
 from dynamic_graph.sot import SE3, R3, SO3
-from dynamic_graph.sot.core import OpPointModifier, Multiply_of_matrixHomo
+from dynamic_graph.sot.core import OpPointModifier
 from dynamic_graph.sot.core.derivator import Derivator_of_Vector
 from dynamic_graph.sot.core.feature_position import FeaturePosition
 from dynamic_graph.sot.core.feature_posture import FeaturePosture
@@ -27,7 +27,7 @@ from dynamic_graph.sot.core import RobotSimu, FeatureGeneric, \
     FeatureJointLimits, Task, Constraint, GainAdaptive, SOT
 
 from dynamic_graph.sot.dynamics.parser import Parser
-from dynamic_graph.sot.dynamics import AngleEstimator, ZmpFromForces, Stabilizer
+from dynamic_graph.sot.dynamics.create_stabilizer import createStabilizer
 
 from dynamic_graph import plug
 
@@ -257,29 +257,6 @@ class AbstractHumanoidRobot (object):
         task.controlGain.value = gain
         return (feature, task)
 
-    def createZmpAndStabilizer (self):
-        self.dynamic.com.recompute(0)
-        self.dynamic.Jcom.recompute(0)
-        self.stabilizer = Stabilizer (self.name + '_stabilizer')
-        self.stabilizer.comDes.value = self.dynamic.com.value
-        self.stabilizer.comdot.value = (0.,0.,0.,)
-        plug (self.dynamic.com, self.stabilizer.com)
-        plug (self.dynamic.Jcom, self.stabilizer.Jcom)
-        plug (self.device.forceLLEG, self.stabilizer.force0)
-        plug (self.device.forceRLEG, self.stabilizer.force1)
-        # Position of left foot
-        prodLeft = Multiply_of_matrixHomo (self.name + '_prodLeft')
-        plug (self.leftAnkle.position, prodLeft.sin1)
-        prodLeft.sin2.value = self.forceSensorInLeftAnkle
-        plug (prodLeft.sout, self.stabilizer.leftFootPosition)
-        # position of right foot
-        prodRight = Multiply_of_matrixHomo (self.name + '_prodRight')
-        plug (self.rightAnkle.position, prodRight.sin1)
-        prodRight.sin2.value = self.forceSensorInRightAnkle
-        plug (prodRight.sout, self.stabilizer.rightFootPosition)
-        return self.stabilizer
-
-
     def createPostureFeatureAndTask (self, featureName, taskName, gain = 100):
         featurePosture = FeaturePosture (featureName)
         featurePosture.setPosture (self.halfSitting)
@@ -306,7 +283,6 @@ class AbstractHumanoidRobot (object):
         """
         For portability, make some signals accessible as attributes.
         """
-        self.comRef = self.stabilizer.comDes
         self.com = self.dynamic.com
         self.comdot = self.stabilizer.comdot
 
@@ -374,7 +350,7 @@ class AbstractHumanoidRobot (object):
                                               '{0}_task_posture'.format
                                               (self.name))
         # --- zmp and stabilizer ---
-        self.tasks ['com'] = self.createZmpAndStabilizer ()
+        self.tasks ['com'] = createStabilizer (self)
         self.comTask = self.tasks ['com']
 
         # --- additional frames ---
