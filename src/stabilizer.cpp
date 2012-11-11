@@ -558,11 +558,13 @@ namespace sot {
 	{
 	  const Vector& state = stateSIN_.access (time);
 
+	  double xi = state (0);
 	  double th = state (1);
 	  double kth = state (4);
 
-	  obs.resize (1);
-	  obs (0) = kth * th;
+	  obs.resize (2);
+	  obs (0) = xi;
+	  obs (1) = kth * th;
 
 	  return obs;
 	}
@@ -573,10 +575,11 @@ namespace sot {
 	  double th = state (1);
 	  double kth = state (4);
 
-	  J.resize (1, 5);
+	  J.resize (2, 5);
 	  J.fill (0.);
-	  J (0, 1) = kth;
-	  J (0, 4) = th;
+	  J (0, 0) = 1.;
+	  J (1, 1) = kth;
+	  J (1, 4) = th;
 
 	  return J;
 	}

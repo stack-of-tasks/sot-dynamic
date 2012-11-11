@@ -15,7 +15,7 @@
 # sot-dynamic. If not, see <http://www.gnu.org/licenses/>.
 
 from dynamic_graph.sot.core import Substract_of_vector, Multiply_double_vector,\
-    Multiply_of_matrixHomo, Selec_of_vector, Kalman
+    Multiply_of_matrixHomo, Selec_of_vector, Stack_of_vector, Kalman
 from dynamic_graph.sot.dynamics import Stabilizer, flexibility_f, flexibility_h
 from dynamic_graph import plug
 
@@ -31,7 +31,7 @@ Q = ((.00001, 0., 0., 0., 0.,),
      (0., 0., 0., 0., 0.,),
      (0., 0., 0., 0., 0.,),)
 
-R = ((1.,),)
+R = ((.01, 0.),(0., 1.,),)
 
 def createStabilizer (robot):
     robot.dynamic.com.recompute(0)
@@ -70,10 +70,12 @@ def createStabilizer (robot):
     robot.ekf_x.R.value = R
     robot.ekf_x.setInitialState (x0)
     robot.ekf_x.setInitialVariance (P0)
-    robot.My = Selec_of_vector(robot.name + '_My')
-    robot.My.selec (4, 5)
-    plug (robot.device.forceRLEG, robot.My.sin)
-    plug (robot.My.sout, robot.ekf_x.y)
+    robot.obs_x = Stack_of_vector (robot.name + '_obs_x')
+    plug (robot.deltaCom.sout, robot.obs_x.sin1)
+    plug (robot.device.forceRLEG, robot.obs_x.sin2)
+    robot.obs_x.selec1 (0, 1)
+    robot.obs_x.selec2 (4, 5)
+    plug (robot.obs_x.sout, robot.ekf_x.y)
     # Kalman filter along y axis
     robot.ekf_y = Kalman (robot.name + '_EKF_y')
     robot.fy = flexibility_f (robot.name + '_fy')
@@ -90,14 +92,14 @@ def createStabilizer (robot):
     robot.ekf_y.R.value = R
     robot.ekf_y.setInitialState (x0)
     robot.ekf_y.setInitialVariance (P0)
-    robot.My = Selec_of_vector(robot.name + '_Mx')
-    robot.My.selec (3, 4)
-    robot.mMy = Multiply_double_vector (robot.name + '_mMy')
-    robot.mMy.sin1.value = -1.
-    plug (robot.device.forceRLEG, robot.My.sin)
-    plug (robot.My.sout, robot.mMy.sin2)
-    plug (robot.mMy.sout, robot.ekf_y.y)
+    robot.minusForce = Multiply_double_vector (robot.name + '_minusForce')
+    robot.minusForce.sin1.value = -1.
+    plug (robot.device.forceRLEG, robot.minusForce.sin2)
+    robot.obs_y = Stack_of_vector (robot.name + '_obs_y')
+    plug (robot.deltaCom.sout, robot.obs_y.sin1)
+    plug (robot.minusForce.sout, robot.obs_y.sin2)
+    robot.obs_y.selec1 (1, 2)
+    robot.obs_y.selec2 (3, 4)
+    plug (robot.obs_y.sout, robot.ekf_y.y)
     
     return robot.stabilizer
-
-
