@@ -29,6 +29,7 @@
 #include <dynamic-graph/command-bind.h>
 
 #include <sot/core/task-abstract.hh>
+#include <sot/core/matrix-rotation.hh>
 #include <sot/core/matrix-homogeneous.hh>
 #include <sot/core/multi-bound.hh>
 
@@ -49,6 +50,7 @@ namespace sot {
     using dynamicgraph::command::docDirectGetter;
     using dynamicgraph::command::makeDirectGetter;
     using dynamicgraph::sot::MatrixHomogeneous;
+    using dynamicgraph::sot::MatrixRotation;
 
     /// Dynamic balance stabilizer
     ///
@@ -81,36 +83,58 @@ namespace sot {
 	(NULL, "Stabilizer("+inName+")::input(vector)::leftFootPosition"),
 	rightFootPositionSIN_
 	(NULL, "Stabilizer("+inName+")::input(vector)::rightFootPosition"),
-	stateFlexXSIN_
-	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_x"),
-	stateFlexYSIN_
-	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_y"),
-	ddxSOUT_ ("Stabilizer("+inName+")::output(vector)::ddx"),
-	ddySOUT_ ("Stabilizer("+inName+")::output(vector)::ddy"),
+	forceRightFootSIN_
+	(NULL, "Stabilizer("+inName+")::input(vector)::forceRLEG"),
+	forceLeftFootSIN_
+	(NULL, "Stabilizer("+inName+")::input(vector)::forceLLEG"),
+	stateFlexRfxSIN_
+	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_rfx"),
+	stateFlexRfySIN_
+	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_rfy"),
+	stateFlexLfxSIN_
+	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfx"),
+	stateFlexLfySIN_
+	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfy"),
+	sideGainSIN_
+	(NULL, "Stabilizer("+inName+")::input(double)::sideGain"),
+	controlGainSIN_
+	(NULL, "Stabilizer("+inName+")::input(double)::controlGain"),
+	d2comSOUT_ ("Stabilizer("+inName+")::output(vector)::d2com"),
 	debugSOUT_ ("Stabilize("+inName+")::debug"),
 	gain1_ (4), gain2_ (4),
-	prevCom_(3), flexAngle_ (2), prevFlexAngle_ (2), flexDeriv_ (2),
-	dx_ (0.), dy_ (0.), dz_ (0.), timePeriod_ (.005), on_ (false),
-	forceThreshold_ (20.), angularStiffness_ (425.), ddx_ (1), ddy_ (1)
+	prevCom_(3), flexAngle_ (2), flexDeriv_ (2),
+	dcom_ (3), timePeriod_ (.005), on_ (false),
+	forceThreshold_ (.036), angularStiffness_ (425.), d2com_ (3)
       {
 	// Register signals into the entity.
 	signalRegistration (deltaComSIN_);
 	signalRegistration (jacobianSIN_);
 	signalRegistration (comdotSIN_);
-	signalRegistration (stateFlexXSIN_);
-	signalRegistration (stateFlexYSIN_);
 	signalRegistration (leftFootPositionSIN_);
 	signalRegistration (rightFootPositionSIN_);
-	signalRegistration (ddxSOUT_);
-	signalRegistration (ddySOUT_);
+	signalRegistration (forceRightFootSIN_);
+	signalRegistration (forceLeftFootSIN_);
+	signalRegistration (stateFlexRfxSIN_);
+	signalRegistration (stateFlexRfySIN_);
+	signalRegistration (stateFlexLfxSIN_);
+	signalRegistration (stateFlexLfySIN_);
+	signalRegistration (controlGainSIN_);
+	signalRegistration (sideGainSIN_);
+	signalRegistration (d2comSOUT_);
 	signalRegistration (debugSOUT_);
 
 	taskSOUT.addDependency (deltaComSIN_);
 	taskSOUT.addDependency (comdotSIN_);
-	taskSOUT.addDependency (stateFlexXSIN_);
-	taskSOUT.addDependency (stateFlexYSIN_);
 	taskSOUT.addDependency (leftFootPositionSIN_);
 	taskSOUT.addDependency (rightFootPositionSIN_);
+	taskSOUT.addDependency (forceRightFootSIN_);
+	taskSOUT.addDependency (forceLeftFootSIN_);
+	taskSOUT.addDependency (stateFlexRfxSIN_);
+	taskSOUT.addDependency (stateFlexRfySIN_);
+	taskSOUT.addDependency (stateFlexLfxSIN_);
+	taskSOUT.addDependency (stateFlexLfySIN_);
+	taskSOUT.addDependency (controlGainSIN_);
+	taskSOUT.addDependency (sideGainSIN_);
 
 	jacobianSOUT.addDependency (jacobianSIN_);
 
@@ -119,10 +143,10 @@ namespace sot {
 	jacobianSOUT.setFunction (boost::bind(&Stabilizer::computeJacobianCom,
 					      this,_1,_2));
 
-	ddx_.fill (0.);
-	ddy_.fill (0.);
-	ddxSOUT_.setConstant (ddx_);
-	ddySOUT_.setConstant (ddy_);
+	d2com_.fill (0.);
+	dcom_.fill (0.);
+	d2comSOUT_.setConstant (d2com_);
+	sideGainSIN_.setConstant (1.);
 
 	std::string docstring;
 	docstring =
@@ -176,7 +200,6 @@ namespace sot {
 
 	prevCom_.fill (0.);
 	flexAngle_.fill (0.);
-	prevFlexAngle_.fill (0.);
 	flexDeriv_.fill (0.);
 	debug_.resize (11);
 
@@ -236,20 +259,78 @@ namespace sot {
       /// @}
 
     private:
+      /// Compute flexibility state from both feet
+      void computeFlexibility (const int& time)
+      {
+	const Vector& flexRfx = stateFlexRfxSIN_.access (time);
+	const Vector& flexRfy = stateFlexRfySIN_.access (time);
+	const Vector& flexLfx = stateFlexLfxSIN_.access (time);
+	const Vector& flexLfy = stateFlexLfySIN_.access (time);
+	const MatrixHomogeneous& Mr = rightFootPositionSIN_.access (time);
+	const MatrixHomogeneous& Ml = leftFootPositionSIN_.access (time);
+	const Vector& fr = forceRightFootSIN_.access (time);
+	const Vector& fl = forceLeftFootSIN_.access (time);
+
+	// Express vertical component of force in global basis
+	double flz = Ml (2,0) * fl (0) + Ml(2,1) * fl (1) + Ml (2,2) * fl (2);
+	double frz = Mr (2,0) * fr (0) + Mr(2,1) * fr (1) + Mr (2,2) * fr (2);
+
+	nbSupport_ = 0;
+	if (on_) {
+	  if (frz >= forceThreshold_) nbSupport_++;
+	  if (flz >= forceThreshold_) nbSupport_++;
+	}
+	if (frz < 0) frz = 0;
+	if (flz < 0) flz = 0;
+	double fz = flz + frz;
+	if (fz == 0) {
+	  flexAngle_ (0) = 0;
+	  flexAngle_ (1) = 0;
+	  flexDeriv_ (0) = 0;
+	  flexDeriv_ (1) = 0;
+	  return;
+	}
+	// Extract yaw from right foot position
+	double nx = Mr (0,0);
+	double ny = Mr (1,0);
+	double norm = sqrt (nx*nx + ny*ny);
+	double cth = nx/norm;
+	double sth = ny/norm;
+	double flexAngleRfx = cth * flexRfx (1) + sth * flexRfy (1);
+	double flexAngleRfy = -sth * flexRfx (1) + cth * flexRfy (1);
+	double flexDerivRfx = cth * flexRfx (3) + sth * flexRfy (3);
+	double flexDerivRfy = -sth * flexRfx (3) + cth * flexRfy (3);
+	// Extract yaw from left foot position
+	nx = Ml (0,0);
+	ny = Ml (1,0);
+	norm = sqrt (nx*nx + ny*ny);
+	cth = nx/norm;
+	sth = ny/norm;
+	double flexAngleLfx = cth * flexLfx (1) + sth * flexLfy (1);
+	double flexAngleLfy = -sth * flexLfx (1) + cth * flexLfy (1);
+	double flexDerivLfx = cth * flexLfx (3) + sth * flexLfy (3);
+	double flexDerivLfy = -sth * flexLfx (3) + cth * flexLfy (3);
+
+	flexAngle_ (0) = (frz * flexAngleRfx + flz * flexAngleLfx)/fz;
+	flexAngle_ (1) = (frz * flexAngleRfy + flz * flexAngleLfy)/fz;
+	flexDeriv_ (0) = (frz * flexDerivRfx + flz * flexDerivLfx)/fz;
+	flexDeriv_ (1) = (frz * flexDerivRfy + flz * flexDerivLfy)/fz;
+      }
+
       /// Compute the control law
       VectorMultiBound& computeControlFeedback(VectorMultiBound& comdot,
-					       const int& inTime)
+					       const int& time)
       {
-	const Vector& deltaCom = deltaComSIN_ (inTime);
-	const Vector& comdotRef = comdotSIN_ (inTime);
+	const Vector& deltaCom = deltaComSIN_ (time);
+	const Vector& comdotRef = comdotSIN_ (time);
 	const MatrixHomogeneous& leftFootPosition =
-	  leftFootPositionSIN_.access (inTime);
+	  leftFootPositionSIN_.access (time);
 	const MatrixHomogeneous& rightFootPosition =
-	  rightFootPositionSIN_.access (inTime);
-	const Vector& flexX = stateFlexXSIN_.access (inTime);
-	const Vector& flexY = stateFlexYSIN_.access (inTime);
+	  rightFootPositionSIN_.access (time);
+	const double& gain = controlGainSIN_.access (time);
+	const double& sideGain = sideGainSIN_.access (time);
 
-	if (on_) nbSupport_ = 1; else nbSupport_ = 0;
+	computeFlexibility (time);
 
 	double x = deltaCom (0);
 	double y = deltaCom (1);
@@ -264,32 +345,32 @@ namespace sot {
 
 	switch (nbSupport_) {
 	case 0:
-	  dx_ = -x;
-	  dy_ = -y;
+	  dcom_ (0) = -gain * x;
+	  dcom_ (1) = -gain * y;
 	  break;
 	case 1: //single support
 	  //along x
-	  theta0 = flexX (1);
-	  dtheta0 = flexX (3);
-	  ddx_ (0)= -(gain1_ (0)*x + gain1_ (1)*theta0 + gain1_ (2)*dx_ +
-		  gain1_ (3)*dtheta0);
+	  theta0 = flexAngle_ (0);
+	  dtheta0 = flexDeriv_ (0);
+	  d2com_ (0)= -(gain1_ (0)*x + gain1_ (1)*theta0 + gain1_ (2)*dcom_ (0) +
+			  gain1_ (3)*dtheta0);
 	  debug_ (0) = x;
 	  debug_ (1) = theta0;
-	  debug_ (2) = dx_;
+	  debug_ (2) = dcom_ (0);
 	  debug_ (3) = dtheta0;
-	  debug_ (4) = ddx_ (0);
-	  dx_ += timePeriod_ * ddx_ (0);
+	  debug_ (4) = d2com_ (0);
+	  dcom_ (0) += timePeriod_ * d2com_ (0);
 	  // along y
-	  theta1 = flexY (1);
-	  dtheta1 = flexY (3);
-	  ddy_ (0) = - (gain1_ (0)*y + gain1_ (1)*theta1 + gain1_ (2)*dy_ +
-		   gain1_ (3)*dtheta1);
+	  theta1 = flexAngle_ (1);
+	  dtheta1 = flexDeriv_ (1);
+	  d2com_ (1) = - (gain1_ (0)*y + gain1_ (1)*theta1 +
+			  gain1_ (2)*dcom_ (1) + gain1_ (3)*dtheta1);
 	  debug_ (5) = y;
 	  debug_ (6) = theta1;
-	  debug_ (7) = dy_;
+	  debug_ (7) = dcom_ (1);
 	  debug_ (8) = dtheta1;
-	  debug_ (9) = ddy_ (0);
-	  dy_ += timePeriod_ * ddy_ (0);
+	  debug_ (9) = d2com_ (1);
+	  dcom_ (1) += timePeriod_ * d2com_ (1);
 
 	  break;
 	case 2: //double support
@@ -304,39 +385,38 @@ namespace sot {
 	  theta = - (u2x * flexAngle_ (0) + u2y * flexAngle_ (1));
 	  dtheta = - (u2x * flexDeriv_ (0) + u2y * flexDeriv_ (1));
 	  xi = u1x*x + u1y*y;
-	  dxi = u1x*dx_ + u1y*dy_;
+	  dxi = u1x*dcom_ (0) + u1y*dcom_ (1);
 	  ddxi = - (gain2_ (0)*xi + gain2_ (1)*theta + gain2_ (2)*dxi +
 		    gain2_ (3)*dtheta);
 	  lat = u2x*x + u2y*y;
-	  dlat = u2x*dx_ + u2y*dy_;
-	  ddlat = -2*dlat - lat;
+	  dlat = u2x*dcom_ (0) + u2y*dcom_ (1);
+	  ddlat = -2*sideGain*dlat - sideGain*sideGain*lat;
 
-	  ddx_ (0) = ddxi * u1x;
-	  ddy_ (0) = ddxi * u1y;
-	  dx_ += timePeriod_ * (ddx_ (0) + ddlat*u2x);
-	  dy_ += timePeriod_ * (ddy_ (0) + ddlat*u2y);
+	  d2com_ (0) = ddxi * u1x;
+	  d2com_ (1) = ddxi * u1y;
+	  dcom_ (0) += timePeriod_ * (d2com_ (0) + ddlat*u2x);
+	  dcom_ (1) += timePeriod_ * (d2com_ (1) + ddlat*u2y);
 	  break;
 	default:
 	  break;
 	};
-	dz_ = -z;
+	dcom_ (2) = -gain * z;
 
 	comdot.resize (3);
-	comdot [0].setSingleBound (comdotRef (0) + dx_);
-	comdot [1].setSingleBound (comdotRef (1) + dy_);
-	comdot [2].setSingleBound (comdotRef (2) + dz_);
+	comdot [0].setSingleBound (comdotRef (0) + dcom_ (0));
+	comdot [1].setSingleBound (comdotRef (1) + dcom_ (1));
+	comdot [2].setSingleBound (comdotRef (2) + dcom_ (2));
 
-	ddxSOUT_.setConstant (ddx_);
-	ddySOUT_.setConstant (ddy_);
+	d2comSOUT_.setConstant (d2com_);
 	debugSOUT_.setConstant (debug_);
-	debugSOUT_.setTime (inTime);
+	debugSOUT_.setTime (time);
 	return comdot;
       }
 
-      Matrix& computeJacobianCom(Matrix& jacobian, const int& inTime)
+      Matrix& computeJacobianCom(Matrix& jacobian, const int& time)
       {
 	typedef unsigned int size_t;
-	jacobian = jacobianSIN_ (inTime);
+	jacobian = jacobianSIN_ (time);
 	return jacobian;
       }
 
@@ -350,16 +430,24 @@ namespace sot {
       SignalPtr <MatrixHomogeneous, int> leftFootPositionSIN_;
       // Position of right foot force sensor in global frame
       SignalPtr <MatrixHomogeneous, int> rightFootPositionSIN_;
-      // Flexibility state along x axis (\xi, \theta, \dot{\xi}, \dot{\theta})
-      // theta = rotation angle around -y
-      SignalPtr <dynamicgraph::Vector, int> stateFlexXSIN_;
-      // Flexibility state along y axis (\xi, \theta, \dot{\xi}, \dot{\theta})
-      // theta = rotation angle around x
-      SignalPtr <dynamicgraph::Vector, int> stateFlexYSIN_;
+      // Force in right foot sensor
+      SignalPtr <dynamicgraph::Vector, int> forceRightFootSIN_;
+      // Force in left foot sensor
+      SignalPtr <dynamicgraph::Vector, int> forceLeftFootSIN_;
+      // Right foot flexibility state along local x axis
+      SignalPtr <dynamicgraph::Vector, int> stateFlexRfxSIN_;
+      // Right foot flexibility state along local y axis
+      SignalPtr <dynamicgraph::Vector, int> stateFlexRfySIN_;
+      // Left foot flexibility state along local x axis
+      SignalPtr <dynamicgraph::Vector, int> stateFlexLfxSIN_;
+      // Left foot flexibility state along local y axis
+      SignalPtr <dynamicgraph::Vector, int> stateFlexLfySIN_;
+      // Gain of center task of mass when stabilizer is off
+      SignalPtr <double, int> controlGainSIN_;
+      // Sideways gain in double support
+      SignalPtr <double, int> sideGainSIN_;
       // Acceleration of center of mass
-      SignalTimeDependent <dynamicgraph::Vector, int> ddxSOUT_;
-      // Acceleration of center of mass
-      SignalTimeDependent <dynamicgraph::Vector, int> ddySOUT_;
+      SignalTimeDependent <dynamicgraph::Vector, int> d2comSOUT_;
       // Debug signal
       Signal <dynamicgraph::Vector, int> debugSOUT_;
 
@@ -370,10 +458,9 @@ namespace sot {
       Vector prevCom_;
       /// Angle of the flexibility
       Vector flexAngle_;
-      Vector prevFlexAngle_;
       Vector flexDeriv_;
       /// coordinates of center of mass velocity in moving frame
-      double dx_, dy_, dz_;
+      Vector dcom_;
       // Time sampling period
       double timePeriod_;
       // Whether stabilizer is on
@@ -384,7 +471,8 @@ namespace sot {
       double angularStiffness_;
       // Number of feet in support
       unsigned int nbSupport_;
-      Vector ddx_, ddy_;
+      // Acceleration of the center of mass computed by stabilizer
+      Vector d2com_;
       // Debug
       Vector debug_;
     }; // class Stabilizer
@@ -466,14 +554,14 @@ namespace sot {
 	  jacobianSOUT_.setFunction (boost::bind (&f::computeJacobian, this, _1, _2));
 	}
 
-	Vector& computeNewState (Vector& x, const int&)
+	Vector& computeNewState (Vector& x, const int& time)
 	{
 	  double m = Stabilizer::m_;
 	  double g = Stabilizer::g_;
 	  double zeta = Stabilizer::zeta_;
 
 	  const Vector& state = stateSIN_.accessCopy ();
-	  const Vector& control = controlSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.access (time);
 
 	  double xi = state (0);
 	  double th = state (1);
@@ -590,5 +678,83 @@ namespace sot {
 
     } // namespace flexibility
 
+    class MatrixHomoToYawOrientation
+      :public Entity
+    {
+    public: /* --- CONSTRUCTION --- */
+
+      static const std::string CLASS_NAME;
+
+      virtual const std::string& getClassName  () const
+      {
+	return CLASS_NAME;
+      }
+
+      std::string getDocString () const
+      {
+	return
+	  "Extract yaw orientation of matrix homogeneous as rotation matrix\n"
+	  "\n"
+	  "  Export also inverse of rotation matrix in signal inverse\n";
+      }
+
+      MatrixHomoToYawOrientation( const std::string& name ) :
+	Entity(name)
+	,positionSIN_ (NULL, CLASS_NAME+"(" + name +
+		       ")::input(MatrixHomogeneous)::position")
+	,yawOrientationSOUT_ (boost::bind (&MatrixHomoToYawOrientation::
+					   computeOrientation,this,_1,_2),
+			      positionSIN_, CLASS_NAME+"(" + name +
+			      ")::output(MatrixRotation)::yawOrientation")
+	,inverseSOUT_ (boost::bind (&MatrixHomoToYawOrientation::
+				    computeInverse,this, _1, _2),
+		       yawOrientationSOUT_,
+		       CLASS_NAME+"(" + name +
+		       ")::output(MatrixRotation)::inverse")
+      {
+	signalRegistration (positionSIN_<<yawOrientationSOUT_
+			    <<inverseSOUT_);
+      }
+
+      virtual ~MatrixHomoToYawOrientation( void ) {};
+
+    public: /* --- SIGNAL --- */
+
+      SignalPtr<MatrixHomogeneous,int> positionSIN_;
+      SignalTimeDependent<MatrixRotation,int> yawOrientationSOUT_;
+      SignalTimeDependent<MatrixRotation,int> inverseSOUT_;
+
+    protected:
+      MatrixRotation& computeOrientation (MatrixRotation& res,int time)
+      {
+	const MatrixHomogeneous& m = positionSIN_(time);
+	const double& nx = m (0,0);
+	const double& ny = m (1,0);
+	double norm = sqrt (nx*nx + ny*ny);
+	double cth = nx/norm;
+	double sth = ny/norm;
+	res.setIdentity ();
+	res (0,0) = cth;
+	res (1,0) = sth;
+	res (0,1) = -sth;
+	res (1,1) = cth;
+
+	return res;
+      }
+
+      MatrixRotation& computeInverse (MatrixRotation& res,int time)
+      {
+	const MatrixRotation& r = yawOrientationSOUT_ (time);
+	res.setIdentity ();
+	res (0,0) = r (0,0);
+	res (1,0) = r (0,1);
+	res (0,1) = r (1,0);
+	res (1,1) = r (1,1);
+
+	return res;
+      }
+    };
+    DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (MatrixHomoToYawOrientation,
+					"MatrixHomoToYawOrientation");
   } // namespace dynamic
 } // namespace sot
