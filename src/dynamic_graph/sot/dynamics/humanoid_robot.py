@@ -351,6 +351,7 @@ class AbstractHumanoidRobot (object):
         # --- zmp and stabilizer ---
         self.tasks ['com'] = createStabilizer (self)
         self.comTask = self.tasks ['com']
+        self.tasks ['com'].controlGain.value = 180.
 
         # --- additional frames ---
         self.frames = dict()
