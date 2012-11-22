@@ -22,21 +22,19 @@ from dynamic_graph.sot.dynamics import Stabilizer, flexibility_f, flexibility_h,
 from dynamic_graph import plug
 
 x0 = (0., 0, 0., 0., 425.,)
-P0 = ((0.02, 0., 0., 0., 0.,),
-      (0., 0.02, 0., 0., 0.,),
-      (0., 0., 0.03, 0., 0.,),
-      (0., 0., 0., 0.03, 0.,),
-      (0., 0., 0., 0., 100.,))
-Q = ((.00001, 0., 0., 0., 0.,),
-     (0., 0., 0., 0., 0.,),
-     (0., 0., 0., 0., 0.,),
-     (0., 0., 0., 0., 0.,),
-     (0., 0., 0., 0., 0.,),)
+P0 = ((0.02, 0., 0., 0.,),
+      (0., 0.02, 0., 0.,),
+      (0., 0., 0.03, 0.,),
+      (0., 0., 0., 0.03,),)
+Q = ((.00001, 0., 0., 0.,),
+     (0., 0., 0., 0.,),
+     (0., 0., 0., 0.,),
+     (0., 0., 0., 0.,),)
 
 R = ((.01, 0.),(0., 1.,),)
 
 def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
-                         locald2Com, suffix):
+                         locald2Com, stiffness, suffix):
     # Kalman filter along x axis of right foot
     # Entity creation
     ekf = Kalman (robot.name + '_EKF_' + suffix)
@@ -54,6 +52,8 @@ def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
     ekf.R.value = R
     ekf.setInitialState (x0)
     ekf.setInitialVariance (P0)
+    f.stiffness.value = stiffness
+    h.stiffness.value = stiffness
     # Plug
     plug (locald2Com.sout, control.sin)
     plug (control.sout, f.control)
@@ -82,7 +82,7 @@ def createKalmanFilterFeet (robot):
     createKalmanOneFoot (robot, robot.device.forceRLEG,
                          robot.stabilizer.stateFlex_rfx,
                          robot.localDeltaCom_rf,
-                         robot.locald2Com_rf, 'rfx')
+                         robot.locald2Com_rf, 425., 'rfx')
     robot.control_rfx.selec (0, 1)
     robot.obs_rfx.selec1 (0, 1)
     robot.obs_rfx.selec2 (4, 5)
@@ -91,7 +91,7 @@ def createKalmanFilterFeet (robot):
     createKalmanOneFoot (robot, robot.device.forceRLEG,
                          robot.stabilizer.stateFlex_rfy,
                          robot.localDeltaCom_rf,
-                         robot.locald2Com_rf, 'rfy')
+                         robot.locald2Com_rf, 425., 'rfy')
     robot.control_rfy.selec (1, 2)
     robot.obs_rfy.selec1 (1, 2)
     robot.obs_rfy.selec2 (3, 4)
@@ -100,7 +100,7 @@ def createKalmanFilterFeet (robot):
     createKalmanOneFoot (robot, robot.device.forceLLEG,
                          robot.stabilizer.stateFlex_lfx,
                          robot.localDeltaCom_lf,
-                         robot.locald2Com_lf, 'lfx')
+                         robot.locald2Com_lf, 425., 'lfx')
     robot.control_lfx.selec (0, 1)
     robot.obs_lfx.selec1 (0, 1)
     robot.obs_lfx.selec2 (4, 5)
@@ -109,7 +109,7 @@ def createKalmanFilterFeet (robot):
     createKalmanOneFoot (robot, robot.device.forceLLEG,
                          robot.stabilizer.stateFlex_lfy,
                          robot.localDeltaCom_lf,
-                         robot.locald2Com_lf, 'lfy')
+                         robot.locald2Com_lf, 425., 'lfy')
     robot.control_lfy.selec (1, 2)
     robot.obs_lfy.selec1 (1, 2)
     robot.obs_lfy.selec2 (3, 4)

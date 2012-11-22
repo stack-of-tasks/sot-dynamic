@@ -95,10 +95,10 @@ namespace sot {
 	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfx"),
 	stateFlexLfySIN_
 	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfy"),
-	sideGainSIN_
-	(NULL, "Stabilizer("+inName+")::input(double)::sideGain"),
 	controlGainSIN_
 	(NULL, "Stabilizer("+inName+")::input(double)::controlGain"),
+	sideGainSIN_
+	(NULL, "Stabilizer("+inName+")::input(double)::sideGain"),
 	d2comSOUT_ ("Stabilizer("+inName+")::output(vector)::d2com"),
 	debugSOUT_ ("Stabilize("+inName+")::debug"),
 	gain1_ (4), gain2_ (4),
@@ -501,16 +501,19 @@ namespace sot {
       class Function : public Entity
       {
       protected:
+	SignalPtr <double, int> stiffnessSIN_;
 	SignalPtr < Vector, int > stateSIN_;
 	double dt_;
 
       public:
 	Function (const std::string& name) : Entity (name),
+	  stiffnessSIN_ (0, "flexibility_f(" + name +
+		       ")::input(double)::stiffness"),
 	  stateSIN_ (0, "flexibility::Function(" + name +
 		     ")::input(vector)::state"),
 	  dt_ (.005)
 	{
-	  signalRegistration (stateSIN_);
+	  signalRegistration (stiffnessSIN_ << stateSIN_);
 	  addCommand ("setTimePeriod",
 		      makeDirectSetter (*this, &dt_,
 					docDirectSetter ("time period",
@@ -549,7 +552,8 @@ namespace sot {
 			 ")::output(vector)::jacobian")
 
 	{
-	  signalRegistration (controlSIN_ << newStateSOUT_ << jacobianSOUT_);
+	  signalRegistration (controlSIN_ << newStateSOUT_
+			      << jacobianSOUT_);
 	  newStateSOUT_.setFunction (boost::bind (&f::computeNewState, this, _1, _2));
 	  jacobianSOUT_.setFunction (boost::bind (&f::computeJacobian, this, _1, _2));
 	}
@@ -562,26 +566,25 @@ namespace sot {
 
 	  const Vector& state = stateSIN_.accessCopy ();
 	  const Vector& control = controlSIN_.access (time);
+	  const double& kth = stiffnessSIN_.accessCopy ();
 
 	  double xi = state (0);
 	  double th = state (1);
 	  double dxi = state (2);
 	  double dth = state (3);
-	  double kth = state (4);
 
 	  double u = control (0);
 	  double d2 = (xi*xi+zeta*zeta);
-	  x.resize (5);
+	  x.resize (4);
 
 	  x (0) = xi + dt_ * dxi;
 	  x (1) = th + dt_ * dth;
 	  x (2) = dxi + dt_ * u;
 	  x (3) = dth + dt_* (-kth*th - m*g*(cos (th)*xi - sin (th)*zeta) +
 			     m*(zeta*u -2*dth*xi*dxi))/(m*d2);
-	  x (4) = kth;
-
 	  return x;
 	}
+
 	Matrix& computeJacobian (Matrix& J, const int&)
 	{
 	  double m = Stabilizer::m_;
@@ -590,19 +593,19 @@ namespace sot {
 
 	  const Vector& state = stateSIN_.accessCopy ();
 	  const Vector& control = controlSIN_.accessCopy ();
+	  const double& kth = stiffnessSIN_.accessCopy ();
 
 	  double xi = state (0);
 	  double th = state (1);
 	  double dxi = state (2);
 	  double dth = state (3);
-	  double kth = state (4);
 
 	  double u = control (0);
 
 	  double d2 = (xi*xi+zeta*zeta);
 	  double d4 = d2*d2;
 
-	  J.resize (5, 5);
+	  J.resize (4, 4);
 	  J.fill (0.);
 	  J (0, 0) = 1.;
 	  J (0, 2) = dt_;
@@ -617,9 +620,6 @@ namespace sot {
 	    (m*d2);
 	  J (3, 2) = -2*dt_*dth*xi/d2;
 	  J (3, 3) = 1. - 2.*dt_*xi*dxi/d2;
-	  J (3, 4) = -dt_*th/(m*d2);
-
-	  J (4, 4) = 1.;
 
 	  return J;
 	}
@@ -652,10 +652,10 @@ namespace sot {
 	Vector& computeObservation (Vector& obs, const int& time)
 	{
 	  const Vector& state = stateSIN_.access (time);
+	  const double& kth = stiffnessSIN_.accessCopy ();
 
 	  double xi = state (0);
 	  double th = state (1);
-	  double kth = state (4);
 
 	  obs.resize (2);
 	  obs (0) = xi;
@@ -666,15 +666,14 @@ namespace sot {
 	Matrix& computeJacobian (Matrix& J, const int& time)
 	{
 	  const Vector& state = stateSIN_.access (time);
+	  const double& kth = stiffnessSIN_.accessCopy ();
 
 	  double th = state (1);
-	  double kth = state (4);
 
-	  J.resize (2, 5);
+	  J.resize (2, 4);
 	  J.fill (0.);
 	  J (0, 0) = 1.;
 	  J (1, 1) = kth;
-	  J (1, 4) = th;
 
 	  return J;
 	}
