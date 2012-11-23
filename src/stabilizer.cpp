@@ -577,7 +577,7 @@ namespace sot {
 	  x (1) = th + dt_ * dth;
 	  x (2) = dxi + dt_ * u;
 	  x (3) = dth + dt_* (-kth*th - m*g*(cos (th)*xi - sin (th)*zeta) +
-			     m*(zeta*u -2*th*xi*dxi))/(m*d2);
+			     m*(zeta*u -2*dth*xi*dxi))/(m*d2);
 	  x (4) = kth;
 
 	  return x;
@@ -589,6 +589,7 @@ namespace sot {
 	  double zeta = Stabilizer::zeta_;
 
 	  const Vector& state = stateSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.accessCopy ();
 
 	  double xi = state (0);
 	  double th = state (1);
@@ -596,7 +597,10 @@ namespace sot {
 	  double dth = state (3);
 	  double kth = state (4);
 
+	  double u = control (0);
+
 	  double d2 = (xi*xi+zeta*zeta);
+	  double d4 = d2*d2;
 
 	  J.resize (5, 5);
 	  J.fill (0.);
@@ -605,7 +609,10 @@ namespace sot {
 	  J (1, 1) = 1.;
 	  J (1, 3) = dt_;
 	  J (2, 2) = 1.;
-	  J (3, 0) = dt_*(-g*cos (th) -2*dth*dxi)/d2;
+	  J (3, 0) = dt_*((-g*cos (th) -2*dth*dxi)/d2
+			  +(2*xi*(kth*th + m*g*(cos (th)*xi-sin (th)*zeta)
+				  -m*(zeta*u-2*dth*xi*dxi)))
+			  /(m*d4));
 	  J (3, 1) = dt_*(-kth + m*g*(sin (th)*xi + cos (th)*zeta))/
 	    (m*d2);
 	  J (3, 2) = -2*dt_*dth*xi/d2;
