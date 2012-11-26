@@ -17,7 +17,8 @@
 from dynamic_graph.sot.core import Substract_of_vector, Multiply_double_vector,\
     Multiply_of_matrixHomo, Selec_of_vector, Stack_of_vector, \
     Inverse_of_matrixrotation, Multiply_matrix_vector, Kalman
-from dynamic_graph.sot.dynamics import Stabilizer, flexibility_f, flexibility_h, \
+from dynamic_graph.sot.dynamics import Stabilizer, flexibility_f, \
+    flexibility_h, VarianceDoubleSupport, \
     MatrixHomoToYawOrientation
 from dynamic_graph import plug
 
@@ -27,16 +28,16 @@ P0 = ((0.02, 0., 0., 0., 0.,),
       (0., 0., 0.03, 0., 0.,),
       (0., 0., 0., 0.03, 0.,),
       (0., 0., 0., 0., 100.,))
-Q = ((.00001, 0., 0., 0., 0.,),
+Q = ((2e-6, 0., 0., 0., 0.,),
+     (0., 1e-8, 0., 0., 0.,),
      (0., 0., 0., 0., 0.,),
-     (0., 0., 0., 0., 0.,),
-     (0., 0., 0., 0., 0.,),
+     (0., 0., 0., 1e-4, 0.,),
      (0., 0., 0., 0., 0.,),)
 
-R = ((.01, 0.),(0., 1.,),)
+R = ((4e-4, 0.),(0., 1.,),)
 
 def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
-                         locald2Com, suffix):
+                         locald2Com, cosineFoot, suffix):
     # Kalman filter along x axis of right foot
     # Entity creation
     ekf = Kalman (robot.name + '_EKF_' + suffix)
@@ -44,17 +45,23 @@ def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
     h = flexibility_h (robot.name + '_h_' + suffix)
     control = Selec_of_vector (robot.name + '_control_' + suffix)
     obs = Stack_of_vector (robot.name + '_obs_' + suffix)
+    vds = VarianceDoubleSupport (robot.name + '_variance_ds_' + suffix)
     setattr (robot, 'ekf_' + suffix, ekf)
     setattr (robot, 'f_' + suffix, f)
     setattr (robot, 'h_' + suffix, h)
     setattr (robot, 'control_' + suffix, control)
     setattr (robot, 'obs_' + suffix, obs)
+    setattr (robot, 'variance_ds_' + suffix, vds)
     # Commands
-    ekf.Q.value = Q
+    vds.varianceIn.value = Q
+    vds.sigma.value = 1e-2
     ekf.R.value = R
     ekf.setInitialState (x0)
     ekf.setInitialVariance (P0)
     # Plug
+    plug (cosineFoot, vds.cosineFoot)
+    plug (vds.varianceOut, ekf.Q)
+    plug (robot.stabilizer.nbSupport, vds.nbSupport)
     plug (locald2Com.sout, control.sin)
     plug (control.sout, f.control)
     plug (ekf.x_est, f.state)
@@ -65,6 +72,8 @@ def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
     plug (f.jacobian, ekf.F)
     plug (h.jacobian, ekf.H)
     plug (localDeltaCom.sout, obs.sin1)
+    plug (robot.stabilizer.nbSupport, f.nbSupport)
+    plug (cosineFoot, f.cosineFoot)
     if suffix [-1] == 'x':
         plug (forceSensor, obs.sin2)
     elif suffix [-1] == 'y':
@@ -79,37 +88,45 @@ def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
     plug (obs.sout, ekf.y)
 
 def createKalmanFilterFeet (robot):
-    createKalmanOneFoot (robot, robot.device.forceRLEG,
-                         robot.stabilizer.stateFlex_rfx,
-                         robot.localDeltaCom_rf,
-                         robot.locald2Com_rf, 'rfx')
+    createKalmanOneFoot (robot = robot, forceSensor = robot.device.forceRLEG,
+                         kalmanState = robot.stabilizer.stateFlex_rfx,
+                         localDeltaCom = robot.localDeltaCom_rf,
+                         locald2Com = robot.locald2Com_rf,
+                         cosineFoot = robot.stabilizer.cosine_rfx,
+                         suffix = 'rfx')
     robot.control_rfx.selec (0, 1)
     robot.obs_rfx.selec1 (0, 1)
     robot.obs_rfx.selec2 (4, 5)
     robot.f_rfx.control.recompute (0)
 
-    createKalmanOneFoot (robot, robot.device.forceRLEG,
-                         robot.stabilizer.stateFlex_rfy,
-                         robot.localDeltaCom_rf,
-                         robot.locald2Com_rf, 'rfy')
+    createKalmanOneFoot (robot = robot, forceSensor = robot.device.forceRLEG,
+                         kalmanState = robot.stabilizer.stateFlex_rfy,
+                         localDeltaCom = robot.localDeltaCom_rf,
+                         locald2Com = robot.locald2Com_rf,
+                         cosineFoot = robot.stabilizer.cosine_rfy,
+                         suffix = 'rfy')
     robot.control_rfy.selec (1, 2)
     robot.obs_rfy.selec1 (1, 2)
     robot.obs_rfy.selec2 (3, 4)
     robot.f_rfy.control.recompute (0)
 
-    createKalmanOneFoot (robot, robot.device.forceLLEG,
-                         robot.stabilizer.stateFlex_lfx,
-                         robot.localDeltaCom_lf,
-                         robot.locald2Com_lf, 'lfx')
+    createKalmanOneFoot (robot = robot, forceSensor = robot.device.forceLLEG,
+                         kalmanState = robot.stabilizer.stateFlex_lfx,
+                         localDeltaCom = robot.localDeltaCom_lf,
+                         locald2Com = robot.locald2Com_lf,
+                         cosineFoot = robot.stabilizer.cosine_lfx,
+                         suffix = 'lfx')
     robot.control_lfx.selec (0, 1)
     robot.obs_lfx.selec1 (0, 1)
     robot.obs_lfx.selec2 (4, 5)
     robot.f_lfx.control.recompute (0)
 
-    createKalmanOneFoot (robot, robot.device.forceLLEG,
-                         robot.stabilizer.stateFlex_lfy,
-                         robot.localDeltaCom_lf,
-                         robot.locald2Com_lf, 'lfy')
+    createKalmanOneFoot (robot = robot, forceSensor = robot.device.forceLLEG,
+                         kalmanState = robot.stabilizer.stateFlex_lfy,
+                         localDeltaCom = robot.localDeltaCom_lf,
+                         locald2Com = robot.locald2Com_lf,
+                         cosineFoot = robot.stabilizer.cosine_lfy,
+                         suffix = 'lfy')
     robot.control_lfy.selec (1, 2)
     robot.obs_lfy.selec1 (1, 2)
     robot.obs_lfy.selec2 (3, 4)

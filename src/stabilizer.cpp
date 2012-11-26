@@ -95,33 +95,42 @@ namespace sot {
 	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfx"),
 	stateFlexLfySIN_
 	(NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfy"),
-	sideGainSIN_
-	(NULL, "Stabilizer("+inName+")::input(double)::sideGain"),
 	controlGainSIN_
 	(NULL, "Stabilizer("+inName+")::input(double)::controlGain"),
+	sideGainSIN_
+	(NULL, "Stabilizer("+inName+")::input(double)::sideGain"),
 	d2comSOUT_ ("Stabilizer("+inName+")::output(vector)::d2com"),
-	debugSOUT_ ("Stabilize("+inName+")::debug"),
+	cosineRightFootXSOUT_
+	("Stabilizer("+inName+")::output(double)::cosine_rfx"),
+	cosineRightFootYSOUT_
+	("Stabilizer("+inName+")::output(double)::cosine_rfy"),
+	cosineLeftFootXSOUT_
+	("Stabilizer("+inName+")::output(double)::cosine_lfx"),
+	cosineLeftFootYSOUT_
+	("Stabilizer("+inName+")::output(double)::cosine_lfy"),
+	nbSupportSOUT_
+	("Stabilizer("+inName+")::output(unsigned int)::nbSupport"),
 	gain1_ (4), gain2_ (4),
 	prevCom_(3), flexAngle_ (2), flexDeriv_ (2),
 	dcom_ (3), timePeriod_ (.005), on_ (false),
-	forceThreshold_ (.036), angularStiffness_ (425.), d2com_ (3)
+	forceThreshold_ (.036), angularStiffness_ (425.), d2com_ (3),
+	cosineLeftFootX_ (0.), cosineLeftFootY_ (0.),
+	cosineRightFootX_ (0.), cosineRightFootY_ (0.)
       {
 	// Register signals into the entity.
 	signalRegistration (deltaComSIN_);
 	signalRegistration (jacobianSIN_);
 	signalRegistration (comdotSIN_);
-	signalRegistration (leftFootPositionSIN_);
-	signalRegistration (rightFootPositionSIN_);
-	signalRegistration (forceRightFootSIN_);
-	signalRegistration (forceLeftFootSIN_);
-	signalRegistration (stateFlexRfxSIN_);
-	signalRegistration (stateFlexRfySIN_);
-	signalRegistration (stateFlexLfxSIN_);
-	signalRegistration (stateFlexLfySIN_);
+	signalRegistration (leftFootPositionSIN_ << rightFootPositionSIN_
+			    << forceRightFootSIN_ << forceLeftFootSIN_);
+	signalRegistration (stateFlexRfxSIN_ << stateFlexRfySIN_
+			    << stateFlexLfxSIN_ << stateFlexLfySIN_);
 	signalRegistration (controlGainSIN_);
 	signalRegistration (sideGainSIN_);
 	signalRegistration (d2comSOUT_);
-	signalRegistration (debugSOUT_);
+	signalRegistration (cosineRightFootXSOUT_ << cosineRightFootYSOUT_
+			    << cosineLeftFootXSOUT_ << cosineLeftFootYSOUT_);
+	signalRegistration (nbSupportSOUT_);
 
 	taskSOUT.addDependency (deltaComSIN_);
 	taskSOUT.addDependency (comdotSIN_);
@@ -142,6 +151,11 @@ namespace sot {
 					  this,_1,_2));
 	jacobianSOUT.setFunction (boost::bind(&Stabilizer::computeJacobianCom,
 					      this,_1,_2));
+	cosineRightFootXSOUT_.addDependency (taskSOUT);
+	cosineRightFootYSOUT_.addDependency (taskSOUT);
+	cosineLeftFootXSOUT_.addDependency (taskSOUT);
+	cosineLeftFootYSOUT_.addDependency (taskSOUT);
+	nbSupportSOUT_.addDependency (taskSOUT);
 
 	d2com_.fill (0.);
 	dcom_.fill (0.);
@@ -201,7 +215,6 @@ namespace sot {
 	prevCom_.fill (0.);
 	flexAngle_.fill (0.);
 	flexDeriv_.fill (0.);
-	debug_.resize (11);
 
 	gain1_ (0) = 177.57303317647063;
 	gain1_ (1) = -29.735033684033631;
@@ -340,8 +353,23 @@ namespace sot {
 	  lat, dlat, ddlat;
 	double theta1, dtheta1, delta_x, delta_y, theta, dtheta, xi, dxi, ddxi;
 
-	for (unsigned int i=0; i<11; ++i) {debug_ (i) = 0;}
-	debug_ (10) = nbSupport_;
+	// compute component of angle orthogonal to the line joining the feet
+	delta_x = leftFootPosition (0, 3) - rightFootPosition (0, 3);
+	delta_y = leftFootPosition (1, 3) - rightFootPosition (1, 3);
+	norm = sqrt (delta_x*delta_x+delta_y*delta_y);
+	u2x = delta_x/norm;
+	u2y = delta_y/norm;
+	u1x = u2y;
+	u1y = -u2x;
+
+	cosineLeftFootX_ = leftFootPosition (0, 0)*u1x +
+	  leftFootPosition (1, 0)*u1y;
+	cosineLeftFootY_ = leftFootPosition (0, 1)*u1x +
+	  leftFootPosition (1, 1)*u1y;;
+	cosineRightFootX_ = rightFootPosition (0, 0)*u1x +
+	  rightFootPosition (1, 0)*u1y;
+	cosineRightFootY_ = rightFootPosition (0, 1)*u1x +
+	  rightFootPosition (1, 1)*u1y;;
 
 	switch (nbSupport_) {
 	case 0:
@@ -352,36 +380,18 @@ namespace sot {
 	  //along x
 	  theta0 = flexAngle_ (0);
 	  dtheta0 = flexDeriv_ (0);
-	  d2com_ (0)= -(gain1_ (0)*x + gain1_ (1)*theta0 + gain1_ (2)*dcom_ (0) +
-			  gain1_ (3)*dtheta0);
-	  debug_ (0) = x;
-	  debug_ (1) = theta0;
-	  debug_ (2) = dcom_ (0);
-	  debug_ (3) = dtheta0;
-	  debug_ (4) = d2com_ (0);
+	  d2com_ (0)= -(gain1_ (0)*x + gain1_ (1)*theta0 +
+			gain1_ (2)*dcom_ (0) + gain1_ (3)*dtheta0);
 	  dcom_ (0) += timePeriod_ * d2com_ (0);
 	  // along y
 	  theta1 = flexAngle_ (1);
 	  dtheta1 = flexDeriv_ (1);
 	  d2com_ (1) = - (gain1_ (0)*y + gain1_ (1)*theta1 +
 			  gain1_ (2)*dcom_ (1) + gain1_ (3)*dtheta1);
-	  debug_ (5) = y;
-	  debug_ (6) = theta1;
-	  debug_ (7) = dcom_ (1);
-	  debug_ (8) = dtheta1;
-	  debug_ (9) = d2com_ (1);
 	  dcom_ (1) += timePeriod_ * d2com_ (1);
 
 	  break;
 	case 2: //double support
-	  // compute component of angle orthogonal to the line joining the feet
-	  delta_x = leftFootPosition (0, 3) - rightFootPosition (0, 3);
-	  delta_y = leftFootPosition (1, 3) - rightFootPosition (1, 3);
-	  norm = sqrt (delta_x*delta_x+delta_y*delta_y);
-	  u2x = delta_x/norm;
-	  u2y = delta_y/norm;
-	  u1x = u2y;
-	  u1y = -u2x;
 	  theta = - (u2x * flexAngle_ (0) + u2y * flexAngle_ (1));
 	  dtheta = - (u2x * flexDeriv_ (0) + u2y * flexDeriv_ (1));
 	  xi = u1x*x + u1y*y;
@@ -392,10 +402,10 @@ namespace sot {
 	  dlat = u2x*dcom_ (0) + u2y*dcom_ (1);
 	  ddlat = -2*sideGain*dlat - sideGain*sideGain*lat;
 
-	  d2com_ (0) = ddxi * u1x;
-	  d2com_ (1) = ddxi * u1y;
-	  dcom_ (0) += timePeriod_ * (d2com_ (0) + ddlat*u2x);
-	  dcom_ (1) += timePeriod_ * (d2com_ (1) + ddlat*u2y);
+	  d2com_ (0) = ddxi * u1x + ddlat*u2x;
+	  d2com_ (1) = ddxi * u1y + ddlat*u2y;
+	  dcom_ (0) += timePeriod_ * d2com_ (0);
+	  dcom_ (1) += timePeriod_ * d2com_ (1);
 	  break;
 	default:
 	  break;
@@ -408,8 +418,19 @@ namespace sot {
 	comdot [2].setSingleBound (comdotRef (2) + dcom_ (2));
 
 	d2comSOUT_.setConstant (d2com_);
-	debugSOUT_.setConstant (debug_);
-	debugSOUT_.setTime (time);
+	d2comSOUT_.setTime (time);
+
+	cosineLeftFootXSOUT_.setConstant (cosineLeftFootX_);
+	cosineLeftFootXSOUT_.setTime (time);
+	cosineLeftFootYSOUT_.setConstant (cosineLeftFootY_);
+	cosineLeftFootYSOUT_.setTime (time);
+	cosineRightFootXSOUT_.setConstant (cosineRightFootX_);
+	cosineRightFootXSOUT_.setTime (time);
+	cosineRightFootYSOUT_.setConstant (cosineRightFootY_);
+	cosineRightFootYSOUT_.setTime (time);
+	nbSupportSOUT_.setConstant (nbSupport_);
+	nbSupportSOUT_.setTime (time);
+
 	return comdot;
       }
 
@@ -448,8 +469,14 @@ namespace sot {
       SignalPtr <double, int> sideGainSIN_;
       // Acceleration of center of mass
       SignalTimeDependent <dynamicgraph::Vector, int> d2comSOUT_;
-      // Debug signal
-      Signal <dynamicgraph::Vector, int> debugSOUT_;
+      // Cosines of angles between line linking ankles (in horizontal plane)
+      // and foot local axes
+      SignalTimeDependent <double, int> cosineRightFootXSOUT_;
+      SignalTimeDependent <double, int> cosineRightFootYSOUT_;
+      SignalTimeDependent <double, int> cosineLeftFootXSOUT_;
+      SignalTimeDependent <double, int> cosineLeftFootYSOUT_;
+      // Number of support feet
+      SignalTimeDependent <unsigned int, int> nbSupportSOUT_;
 
       /// Gains single support
       Vector gain1_;      /// Gains double support
@@ -473,8 +500,12 @@ namespace sot {
       unsigned int nbSupport_;
       // Acceleration of the center of mass computed by stabilizer
       Vector d2com_;
-      // Debug
-      Vector debug_;
+      // Cosines of angles between line linking ankles (in horizontal plane)
+      // and foot local axes
+      double cosineLeftFootX_;
+      double cosineLeftFootY_;
+      double cosineRightFootX_;
+      double cosineRightFootY_;
     }; // class Stabilizer
 
     double Stabilizer::m_ = 56.;
@@ -535,6 +566,10 @@ namespace sot {
       class f : public Function
       {
 	SignalPtr <Vector, int> controlSIN_;
+	// Cosine of the angle between the line linking both support and
+	// the axis of the flexibility measured by Extended Kalman filter
+	SignalPtr <double, int> cosineFootSIN_;
+	SignalPtr <unsigned int, int> nbSupportSIN_;
 	Signal <Vector, int> newStateSOUT_;
 	Signal <Matrix, int> jacobianSOUT_;
 
@@ -543,15 +578,29 @@ namespace sot {
 	  Function (name),
 	  controlSIN_ (0, "flexibility_f(" + name +
 		       ")::input(vector)::control"),
+	  cosineFootSIN_ (0, "flexibility_f(" + name +
+			  ")::input(double)::cosineFoot"),
+	  nbSupportSIN_ (0, "flexibility_f(" + name +
+			  ")::input(double)::nbSupport"),
 	  newStateSOUT_ ("flexibility_f(" + name +
 			 ")::output(vector)::newState"),
 	  jacobianSOUT_ ("flexibility_f(" + name +
 			 ")::output(vector)::jacobian")
 
 	{
-	  signalRegistration (controlSIN_ << newStateSOUT_ << jacobianSOUT_);
-	  newStateSOUT_.setFunction (boost::bind (&f::computeNewState, this, _1, _2));
-	  jacobianSOUT_.setFunction (boost::bind (&f::computeJacobian, this, _1, _2));
+	  signalRegistration (controlSIN_ << cosineFootSIN_ << newStateSOUT_
+			      << jacobianSOUT_ << nbSupportSIN_);
+	  newStateSOUT_.setFunction (boost::bind (&f::computeNewState, this,
+						  _1, _2));
+	  newStateSOUT_.addDependency (controlSIN_);
+	  newStateSOUT_.addDependency (cosineFootSIN_);
+	  newStateSOUT_.addDependency (nbSupportSIN_);
+
+	  jacobianSOUT_.setFunction (boost::bind (&f::computeJacobian, this,
+						  _1, _2));
+	  jacobianSOUT_.addDependency (controlSIN_);
+	  jacobianSOUT_.addDependency (cosineFootSIN_);
+	  jacobianSOUT_.addDependency (nbSupportSIN_);
 	}
 
 	Vector& computeNewState (Vector& x, const int& time)
@@ -562,6 +611,8 @@ namespace sot {
 
 	  const Vector& state = stateSIN_.accessCopy ();
 	  const Vector& control = controlSIN_.access (time);
+	  const double& cosineFoot = cosineFootSIN_.access (time);
+	  const unsigned int& nbSupport = nbSupportSIN_.access (time);
 
 	  double xi = state (0);
 	  double th = state (1);
@@ -576,20 +627,37 @@ namespace sot {
 	  x (0) = xi + dt_ * dxi;
 	  x (1) = th + dt_ * dth;
 	  x (2) = dxi + dt_ * u;
-	  x (3) = dth + dt_* (-kth*th - m*g*(cos (th)*xi - sin (th)*zeta) +
-			     m*(zeta*u -2*dth*xi*dxi))/(m*d2);
+	  switch (nbSupport) {
+	  case 0:
+	    x (3) = 0;
+	    break;
+	  case 1:
+	    x (3) = dth + dt_* (-kth*th - m*g*(cos (th)*xi - sin (th)*zeta) +
+				m*(zeta*u -2*dth*xi*dxi))/(m*d2);
+	    break;
+	  case 2:
+	    x (3) = dth + dt_* cosineFoot *
+	      (-2*kth*th - m*g*(cos (th)*xi - sin (th)*zeta) +
+	       m*(zeta*u -2*dth*xi*dxi))/(m*d2);
+	  default:
+	    break;
+	  }
+
 	  x (4) = kth;
 
 	  return x;
 	}
-	Matrix& computeJacobian (Matrix& J, const int&)
+
+	Matrix& computeJacobian (Matrix& J, const int& t)
 	{
 	  double m = Stabilizer::m_;
 	  double g = Stabilizer::g_;
 	  double zeta = Stabilizer::zeta_;
 
 	  const Vector& state = stateSIN_.accessCopy ();
-	  const Vector& control = controlSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.access (t);
+	  const double& cosineFoot = cosineFootSIN_.access (t);
+	  const unsigned int& nbSupport = nbSupportSIN_.access (t);
 
 	  double xi = state (0);
 	  double th = state (1);
@@ -609,19 +677,51 @@ namespace sot {
 	  J (1, 1) = 1.;
 	  J (1, 3) = dt_;
 	  J (2, 2) = 1.;
-	  J (3, 0) = dt_*((-g*cos (th) -2*dth*dxi)/d2
-			  +(2*xi*(kth*th + m*g*(cos (th)*xi-sin (th)*zeta)
-				  -m*(zeta*u-2*dth*xi*dxi)))
-			  /(m*d4));
-	  J (3, 1) = dt_*(-kth + m*g*(sin (th)*xi + cos (th)*zeta))/
-	    (m*d2);
-	  J (3, 2) = -2*dt_*dth*xi/d2;
-	  J (3, 3) = 1. - 2.*dt_*xi*dxi/d2;
-	  J (3, 4) = -dt_*th/(m*d2);
-
+	  switch (nbSupport) {
+	  case 0:
+	    J (3, 3) = 1.;
+	    break;
+	  case 1:
+	    J (3, 0) = dt_*((-g*cos (th) -2*dth*dxi)/d2
+			    +(2*xi*(kth*th + m*g*(cos (th)*xi-sin (th)*zeta)
+				    -m*(zeta*u-2*dth*xi*dxi)))
+			    /(m*d4));
+	    J (3, 1) = dt_*(-kth + m*g*(sin (th)*xi + cos (th)*zeta))/
+	      (m*d2);
+	    J (3, 2) = -2*dt_*dth*xi/d2;
+	    J (3, 3) = 1. - 2.*dt_*xi*dxi/d2;
+	    J (3, 4) = -dt_*th/(m*d2);
+	    break;
+	  case 2:
+	    J (3, 0) = dt_*cosineFoot*
+	      ((-g*cos (th) -2*dth*dxi)/d2
+	       +(2*xi*(kth*th + m*g*(cos (th)*xi-sin (th)*zeta)
+		       -m*(zeta*u-2*dth*xi*dxi)))/(m*d4));
+	    J (3, 1) = dt_*cosineFoot*
+	      (-2*kth + m*g*(sin (th)*xi + cos (th)*zeta))/(m*d2);
+	    J (3, 2) = -2*dt_*cosineFoot*dth*xi/d2;
+	    J (3, 3) = 1. - 2.*dt_*cosineFoot*xi*dxi/d2;
+	    J (3, 4) = -2*dt_*cosineFoot*th/(m*d2);
+	  default:
+	    break;
+	  }
 	  J (4, 4) = 1.;
 
 	  return J;
+	}
+	std::string getDocString () const
+	{
+	  return
+	    "State transition for foot flexibility along one local coordinate axis\n"
+	    "\n"
+	    "  Compute expected state at time k from state and control at time k-1.\n"
+	    "  State is defined by center of mass deviation (wrt reference), flexibility\n"
+	    "  angular deviation and derivatives of these two values, along a local\n"
+	    "  axis of one foot.\n"
+	    "  \n"
+	    "  Signal \"cosineFoot\" contains the cosine of angle between the line linking\n"
+	    "  both ankles (in horizontal plane) in double support and the local coordinate\n"
+	    "  axis of the foot.\n";
 	}
       };  // class f
 
@@ -645,7 +745,8 @@ namespace sot {
 	  observationSOUT_.setFunction
 	    (boost::bind (&h::computeObservation, this, _1, _2));
 	  observationSOUT_.addDependency (stateSIN_);
-	  jacobianSOUT_.setFunction (boost::bind (&h::computeJacobian, this, _1, _2));
+	  jacobianSOUT_.setFunction (boost::bind (&h::computeJacobian,
+						  this, _1, _2));
 	  jacobianSOUT_.addDependency (stateSIN_);
 	}
 
@@ -678,6 +779,17 @@ namespace sot {
 
 	  return J;
 	}
+	std::string getDocString () const
+	{
+	  return
+	    "Observation function for foot flexibility along one local coordinate axis\n"
+	    "\n"
+	    "  Compute expected observation at time k from state at time k.\n"
+	    "  State is defined by center of mass deviation (wrt reference), flexibility\n"
+	    "  angular deviation and derivatives of these two values, along a local\n"
+	    "  axis of one foot.\n"
+	    "  Observation if defined by center of mass deviation and moment at the ankle\n";
+	}
       }; // class h
 
       DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (f, "flexibility_f");
@@ -685,6 +797,66 @@ namespace sot {
 
     } // namespace flexibility
 
+    class VarianceDoubleSupport
+      :public Entity
+    {
+      SignalPtr <Matrix, int> varianceSIN_;
+      SignalPtr <unsigned int, int> nbSupportSIN_;
+      SignalPtr <double, int> cosineFootSIN_;
+      SignalPtr <double, int> sigmaSIN_;
+      SignalTimeDependent <Matrix, int> varianceSOUT_;
+
+      DYNAMIC_GRAPH_ENTITY_DECL();
+      virtual ~VarianceDoubleSupport () {};
+
+      std::string getDocString () const
+      {
+	return
+	  "Add variance on flexibility evolution in double support\n";
+      }
+
+      VarianceDoubleSupport (const std::string& name) :
+	Entity (name),
+	varianceSIN_ (0, "VarianceDoubleSupport(" + name +
+	 	      ")::input(Matrix)::varianceIn"),
+	nbSupportSIN_ (0, "VarianceDoubleSupport(" + name +
+	 	       ")::input(unsigned int)::nbSupport"),
+	cosineFootSIN_ (0, "VarianceDoubleSupport(" + name +
+			")::input(double)::cosineFoot"),
+	sigmaSIN_ (0, "VarianceDoubleSupport(" + name +
+	 	   ")::input(double)::sigma"),
+	varianceSOUT_ ("VarianceDoubleSupport(" + name +
+	 	       ")::input(double)::varianceOut")
+      {
+	signalRegistration (varianceSIN_  << nbSupportSIN_ << cosineFootSIN_
+			    << sigmaSIN_ << varianceSOUT_ );
+	varianceSOUT_.addDependency (varianceSIN_);
+	varianceSOUT_.addDependency (nbSupportSIN_);
+	varianceSOUT_.addDependency (cosineFootSIN_);
+	varianceSOUT_.addDependency (sigmaSIN_);
+
+	varianceSOUT_.setFunction (boost::bind
+	 			   (&VarianceDoubleSupport::computeVariance,
+	 			    this, _1, _2));
+      }
+
+      Matrix& computeVariance (Matrix& sout, const int& t)
+       {
+       	const unsigned int& nbSupport = nbSupportSIN_.access (t);
+       	const Matrix& varianceIn = varianceSIN_.access (t);
+       	const double& sigma = sigmaSIN_.access (t);
+	const double& cosine = cosineFootSIN_.access (t);
+
+ 	sout = varianceIn;
+      	if (nbSupport == 2) {
+       	  sout (3, 3) += sigma * (1 - cosine*cosine);
+       	}
+       	return sout;
+      }
+    }; // class VarianceDoubleSupport
+
+    DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (VarianceDoubleSupport,
+    					"VarianceDoubleSupport");
     class MatrixHomoToYawOrientation
       :public Entity
     {
@@ -762,6 +934,7 @@ namespace sot {
       }
     };
     DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (MatrixHomoToYawOrientation,
-					"MatrixHomoToYawOrientation");
+    					"MatrixHomoToYawOrientation");
+
   } // namespace dynamic
 } // namespace sot
