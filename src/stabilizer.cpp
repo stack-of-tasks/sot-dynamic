@@ -116,6 +116,7 @@ namespace sot {
 	prevCom_(3), flexAngle_ (2), flexDeriv_ (2),
 	dcom_ (3), timePeriod_ (.005), on_ (false),
 	forceThreshold_ (.036), angularStiffness_ (425.), d2com_ (3),
+	deltaCom_ (3),
 	cosineLeftFootX_ (0.), cosineLeftFootY_ (0.),
 	cosineRightFootX_ (0.), cosineRightFootY_ (0.), debug_ (4)
       {
@@ -160,8 +161,9 @@ namespace sot {
 	cosineLeftFootYSOUT_.addDependency (taskSOUT);
 	nbSupportSOUT_.addDependency (taskSOUT);
 
-	d2com_.fill (0.);
-	dcom_.fill (0.);
+	d2com_.setZero ();
+	dcom_.setZero ();
+	deltaCom_.setZero ();
 	d2comSOUT_.setConstant (d2com_);
 	sideGainSIN_.setConstant (1.);
 	debug_.setZero ();
@@ -288,6 +290,8 @@ namespace sot {
 	const MatrixHomogeneous& Ml = leftFootPositionSIN_.access (time);
 	const Vector& fr = forceRightFootSIN_.access (time);
 	const Vector& fl = forceLeftFootSIN_.access (time);
+	double deltaComRfx, deltaComRfy, deltaComLfx, deltaComLfy;
+	double dcomRfx, dcomRfy, dcomLfx, dcomLfy;
 
 	// Express vertical component of force in global basis
 	double flz = Ml (2,0) * fl (0) + Ml(2,1) * fl (1) + Ml (2,2) * fl (2);
@@ -314,16 +318,23 @@ namespace sot {
 	double norm = sqrt (nx*nx + ny*ny);
 	double cth = nx/norm;
 	double sth = ny/norm;
+	// Flexibility right foot in global frame
 	double flexAngleRfx = cth * flexRfx (1) + sth * flexRfy (1);
 	double flexAngleRfy = -sth * flexRfx (1) + cth * flexRfy (1);
 	double flexDerivRfx = cth * flexRfx (3) + sth * flexRfy (3);
 	double flexDerivRfy = -sth * flexRfx (3) + cth * flexRfy (3);
+	// Compute deviation of center of mass
+	deltaComRfx = cth * flexRfx (0) - sth * flexRfy (0);
+	deltaComRfy = sth * flexRfx (0) + cth * flexRfy (0);
+	dcomRfx = cth * flexRfx (2) - sth * flexRfy (2);
+	dcomRfy = sth * flexRfx (2) + cth * flexRfy (2);
 	// Extract yaw from left foot position
 	nx = Ml (0,0);
 	ny = Ml (1,0);
 	norm = sqrt (nx*nx + ny*ny);
 	cth = nx/norm;
 	sth = ny/norm;
+	// Flexibility left foot in global frame
 	double flexAngleLfx = cth * flexLfx (1) + sth * flexLfy (1);
 	double flexAngleLfy = -sth * flexLfx (1) + cth * flexLfy (1);
 	double flexDerivLfx = cth * flexLfx (3) + sth * flexLfy (3);
@@ -333,6 +344,16 @@ namespace sot {
 	flexAngle_ (1) = (frz * flexAngleRfy + flz * flexAngleLfy)/fz;
 	flexDeriv_ (0) = (frz * flexDerivRfx + flz * flexDerivLfx)/fz;
 	flexDeriv_ (1) = (frz * flexDerivRfy + flz * flexDerivLfy)/fz;
+	// Compute deviation of center of mass
+	deltaComLfx = cth * flexLfx (0) - sth * flexLfy (0);
+	deltaComLfy = sth * flexLfx (0) + cth * flexLfy (0);
+	dcomLfx = cth * flexLfx (2) - sth * flexLfy (2);
+	dcomLfy = sth * flexLfx (2) + cth * flexLfy (2);
+
+	deltaCom_ (0) = (frz * deltaComRfx + flz * deltaComLfx)/fz;
+	deltaCom_ (1) = (frz * deltaComRfy + flz * deltaComLfy)/fz;
+	dcom_ (0) = (frz * dcomRfx + flz * dcomLfx)/fz;
+	dcom_ (1) = (frz * dcomRfy + flz * dcomLfy)/fz;
       }
 
       /// Compute the control law
@@ -350,8 +371,8 @@ namespace sot {
 
 	computeFlexibility (time);
 
-	double x = deltaCom (0);
-	double y = deltaCom (1);
+	double x = deltaCom_ (0);
+	double y = deltaCom_ (1);
 	double z = deltaCom (2);
 
 	double theta0, dtheta0, norm, u2x, u2y, u1x, u1y,
@@ -514,6 +535,8 @@ namespace sot {
       unsigned int nbSupport_;
       // Acceleration of the center of mass computed by stabilizer
       Vector d2com_;
+      // Deviation of center of mass
+      Vector deltaCom_;
       // Cosines of angles between line linking ankles (in horizontal plane)
       // and foot local axes
       double cosineLeftFootX_;
