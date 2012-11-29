@@ -392,8 +392,8 @@ namespace sot {
 
 	  break;
 	case 2: //double support
-	  theta = - (u2x * flexAngle_ (0) + u2y * flexAngle_ (1));
-	  dtheta = - (u2x * flexDeriv_ (0) + u2y * flexDeriv_ (1));
+	  theta = u1x * flexAngle_ (0) + u1y * flexAngle_ (1);
+	  dtheta = u1x * flexDeriv_ (0) + u1y * flexDeriv_ (1);
 	  xi = u1x*x + u1y*y;
 	  dxi = u1x*dcom_ (0) + u1y*dcom_ (1);
 	  ddxi = - (gain2_ (0)*xi + gain2_ (1)*theta + gain2_ (2)*dxi +
