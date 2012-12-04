@@ -110,12 +110,14 @@ namespace sot {
 	("Stabilizer("+inName+")::output(double)::cosine_lfy"),
 	nbSupportSOUT_
 	("Stabilizer("+inName+")::output(unsigned int)::nbSupport"),
+	debugSOUT_
+	("Stabilizer("+inName+")::output(vector)::debug"),
 	gain1_ (4), gain2_ (4),
 	prevCom_(3), flexAngle_ (2), flexDeriv_ (2),
 	dcom_ (3), timePeriod_ (.005), on_ (false),
 	forceThreshold_ (.036), angularStiffness_ (425.), d2com_ (3),
 	cosineLeftFootX_ (0.), cosineLeftFootY_ (0.),
-	cosineRightFootX_ (0.), cosineRightFootY_ (0.)
+	cosineRightFootX_ (0.), cosineRightFootY_ (0.), debug_ (4)
       {
 	// Register signals into the entity.
 	signalRegistration (deltaComSIN_);
@@ -131,6 +133,7 @@ namespace sot {
 	signalRegistration (cosineRightFootXSOUT_ << cosineRightFootYSOUT_
 			    << cosineLeftFootXSOUT_ << cosineLeftFootYSOUT_);
 	signalRegistration (nbSupportSOUT_);
+	signalRegistration (debugSOUT_);
 
 	taskSOUT.addDependency (deltaComSIN_);
 	taskSOUT.addDependency (comdotSIN_);
@@ -161,6 +164,8 @@ namespace sot {
 	dcom_.fill (0.);
 	d2comSOUT_.setConstant (d2com_);
 	sideGainSIN_.setConstant (1.);
+	debug_.setZero ();
+	debugSOUT_.setConstant (debug_);
 
 	std::string docstring;
 	docstring =
@@ -417,6 +422,11 @@ namespace sot {
 	comdot [1].setSingleBound (comdotRef (1) + dcom_ (1));
 	comdot [2].setSingleBound (comdotRef (2) + dcom_ (2));
 
+	debug_ (0) = deltaCom (0);
+	debug_ (1) = deltaCom (1);
+	debug_ (2) = dcom_ (0);
+	debug_ (3) = dcom_ (1);
+
 	d2comSOUT_.setConstant (d2com_);
 	d2comSOUT_.setTime (time);
 
@@ -430,6 +440,8 @@ namespace sot {
 	cosineRightFootYSOUT_.setTime (time);
 	nbSupportSOUT_.setConstant (nbSupport_);
 	nbSupportSOUT_.setTime (time);
+	debugSOUT_.setConstant (debug_);
+	debugSOUT_.setTime (time);
 
 	return comdot;
       }
@@ -477,6 +489,8 @@ namespace sot {
       SignalTimeDependent <double, int> cosineLeftFootYSOUT_;
       // Number of support feet
       SignalTimeDependent <unsigned int, int> nbSupportSOUT_;
+      // Position and velocity of center of mass
+      Signal <dynamicgraph::Vector, int> debugSOUT_;
 
       /// Gains single support
       Vector gain1_;      /// Gains double support
@@ -506,6 +520,7 @@ namespace sot {
       double cosineLeftFootY_;
       double cosineRightFootX_;
       double cosineRightFootY_;
+      Vector debug_;
     }; // class Stabilizer
 
     double Stabilizer::m_ = 56.;
