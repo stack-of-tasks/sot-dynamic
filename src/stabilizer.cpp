@@ -32,6 +32,7 @@
 #include <sot/core/matrix-rotation.hh>
 #include <sot/core/matrix-homogeneous.hh>
 #include <sot/core/multi-bound.hh>
+#include <sot/core/vector-utheta.hh>
 
 namespace sot {
   namespace dynamic {
@@ -51,6 +52,7 @@ namespace sot {
     using dynamicgraph::command::makeDirectGetter;
     using dynamicgraph::sot::MatrixHomogeneous;
     using dynamicgraph::sot::MatrixRotation;
+    using dynamicgraph::sot::VectorUTheta;
 
     /// Dynamic balance stabilizer
     ///
@@ -110,15 +112,26 @@ namespace sot {
 	("Stabilizer("+inName+")::output(double)::cosine_lfy"),
 	nbSupportSOUT_
 	("Stabilizer("+inName+")::output(unsigned int)::nbSupport"),
+	stateFlexInvSOUT_
+	("Stabilizer("+inName+")::output(MatrixHomo)::stateFlex_inv"),
+	correctionLfSOUT_
+	("Stabilizer("+inName+")::output(MatrixHomo)::correction_lf"),
+	correctionRfSOUT_
+	("Stabilizer("+inName+")::output(MatrixHomo)::correction_rf"),
 	debugSOUT_
 	("Stabilizer("+inName+")::output(vector)::debug"),
 	gain1_ (4), gain2_ (4),
 	prevCom_(3), flexAngle_ (2), flexDeriv_ (2),
-	dcom_ (3), timePeriod_ (.005), on_ (false),
-	forceThreshold_ (.036), angularStiffness_ (425.), d2com_ (3),
+	dcom_ (3), dt_ (.005), on_ (false),
+	forceThreshold_ (.036*m_*g_), angularStiffness_ (425.), d2com_ (3),
 	deltaCom_ (3),
 	cosineLeftFootX_ (0.), cosineLeftFootY_ (0.),
-	cosineRightFootX_ (0.), cosineRightFootY_ (0.), debug_ (4)
+	cosineRightFootX_ (0.), cosineRightFootY_ (0.),
+	stateFlex_ (), stateFlexInv_ (), correctionLf_ (), correctionRf_ (),
+	timeBeforeFlyingFootCorrection_ (.1),
+	iterationsSinceLastSupportLf_ (0), iterationsSinceLastSupportRf_ (0),
+	uth_ (),
+	R_ (), translation_ (3), zmp_ (3), debug_ (4)
       {
 	// Register signals into the entity.
 	signalRegistration (deltaComSIN_);
@@ -134,6 +147,8 @@ namespace sot {
 	signalRegistration (cosineRightFootXSOUT_ << cosineRightFootYSOUT_
 			    << cosineLeftFootXSOUT_ << cosineLeftFootYSOUT_);
 	signalRegistration (nbSupportSOUT_);
+	signalRegistration (stateFlexInvSOUT_ << correctionLfSOUT_
+			    << correctionRfSOUT_);
 	signalRegistration (debugSOUT_);
 
 	taskSOUT.addDependency (deltaComSIN_);
@@ -232,6 +247,8 @@ namespace sot {
 	gain2_ (1) = 36.712572443697468;
 	gain2_ (2) = 27.206776470588238;
 	gain2_ (3) = -5.76542117647059;
+
+	zmp_.setZero ();
       }
 
       ~Stabilizer() {}
@@ -269,12 +286,12 @@ namespace sot {
       /// \brief Set sampling time period
       void setTimePeriod(const double& inTimePeriod)
       {
-	timePeriod_ = inTimePeriod;
+	dt_ = inTimePeriod;
       }
       /// \brief Get sampling time period
       double getTimePeriod() const
       {
-	return timePeriod_;
+	return dt_;
       }
       /// @}
 
@@ -299,8 +316,18 @@ namespace sot {
 
 	nbSupport_ = 0;
 	if (on_) {
-	  if (frz >= forceThreshold_) nbSupport_++;
-	  if (flz >= forceThreshold_) nbSupport_++;
+	  if (frz >= forceThreshold_) {
+	    nbSupport_++;
+	    iterationsSinceLastSupportRf_ = 0;
+	  } else {
+	    iterationsSinceLastSupportRf_ ++;
+	  }
+	  if (flz >= forceThreshold_) {
+	    nbSupport_++;
+	    iterationsSinceLastSupportLf_ = 0;
+	  } else {
+	    iterationsSinceLastSupportLf_++;
+	  }
 	}
 	if (frz < 0) frz = 0;
 	if (flz < 0) flz = 0;
@@ -354,6 +381,37 @@ namespace sot {
 	deltaCom_ (1) = (frz * deltaComRfy + flz * deltaComLfy)/fz;
 	dcom_ (0) = (frz * dcomRfx + flz * dcomLfx)/fz;
 	dcom_ (1) = (frz * dcomRfy + flz * dcomLfy)/fz;
+	// Compute inverses of flexibility transformations
+	if (fz != 0) {
+	  zmp_ (0) = (frz * Mr (0, 3) + flz * Ml (0, 3))/fz;
+	  zmp_ (1) = (frz * Mr (1, 3) + flz * Ml (1, 3))/fz;
+	  uth_ (0) = flexAngle_ (1);
+	  uth_ (1) = -flexAngle_ (0);
+	  translation_ = zmp_ - R_ * zmp_;
+	  uth_.toMatrix (R_);
+	  for (std::size_t row = 0; row < 3; ++row) {
+	    for (std::size_t col = 0; col < 3; ++col) {
+	      stateFlex_ (row, col) = R_ (row, col);
+	    }
+	    stateFlex_ (row, 3) = translation_ (row);
+	    stateFlex_.inverse (stateFlexInv_);
+	  }
+	  if (iterationsSinceLastSupportLf_ * dt_ >
+	      timeBeforeFlyingFootCorrection_) {
+	    correctionLf_ = stateFlexInv_;
+	  } else {
+	    correctionLf_.setIdentity ();
+	  }
+	  if (iterationsSinceLastSupportRf_ * dt_ >
+	      timeBeforeFlyingFootCorrection_) {
+	    correctionRf_ = stateFlexInv_;
+	  } else {
+	    correctionRf_.setIdentity ();
+	  }
+	  stateFlexInvSOUT_.setConstant (stateFlexInv_);
+	  correctionLfSOUT_.setConstant (correctionLf_);
+	  correctionRfSOUT_.setConstant (correctionRf_);
+	}
       }
 
       /// Compute the control law
@@ -408,13 +466,13 @@ namespace sot {
 	  dtheta0 = flexDeriv_ (0);
 	  d2com_ (0)= -(gain1_ (0)*x + gain1_ (1)*theta0 +
 			gain1_ (2)*dcom_ (0) + gain1_ (3)*dtheta0);
-	  dcom_ (0) += timePeriod_ * d2com_ (0);
+	  dcom_ (0) += dt_ * d2com_ (0);
 	  // along y
 	  theta1 = flexAngle_ (1);
 	  dtheta1 = flexDeriv_ (1);
 	  d2com_ (1) = - (gain1_ (0)*y + gain1_ (1)*theta1 +
 			  gain1_ (2)*dcom_ (1) + gain1_ (3)*dtheta1);
-	  dcom_ (1) += timePeriod_ * d2com_ (1);
+	  dcom_ (1) += dt_ * d2com_ (1);
 
 	  break;
 	case 2: //double support
@@ -430,8 +488,8 @@ namespace sot {
 
 	  d2com_ (0) = ddxi * u1x + ddlat*u2x;
 	  d2com_ (1) = ddxi * u1y + ddlat*u2y;
-	  dcom_ (0) += timePeriod_ * d2com_ (0);
-	  dcom_ (1) += timePeriod_ * d2com_ (1);
+	  dcom_ (0) += dt_ * d2com_ (0);
+	  dcom_ (1) += dt_ * d2com_ (1);
 	  break;
 	default:
 	  break;
@@ -510,6 +568,13 @@ namespace sot {
       SignalTimeDependent <double, int> cosineLeftFootYSOUT_;
       // Number of support feet
       SignalTimeDependent <unsigned int, int> nbSupportSOUT_;
+      // Correction to apply to a geometric feature to compensate for
+      // flexibility
+      Signal <MatrixHomogeneous, int> stateFlexInvSOUT_;
+      // Correction to apply to left foot for flexibility compensation
+      Signal <MatrixHomogeneous, int> correctionLfSOUT_;
+      // Correction to apply to right foot for flexibility compensation
+      Signal <MatrixHomogeneous, int> correctionRfSOUT_;
       // Position and velocity of center of mass
       Signal <dynamicgraph::Vector, int> debugSOUT_;
 
@@ -524,7 +589,7 @@ namespace sot {
       /// coordinates of center of mass velocity in moving frame
       Vector dcom_;
       // Time sampling period
-      double timePeriod_;
+      double dt_;
       // Whether stabilizer is on
       bool on_;
       // Threshold on normal force above which the foot is considered in contact
@@ -543,6 +608,21 @@ namespace sot {
       double cosineLeftFootY_;
       double cosineRightFootX_;
       double cosineRightFootY_;
+
+      MatrixHomogeneous stateFlex_;
+      MatrixHomogeneous stateFlexInv_;
+      MatrixHomogeneous correctionLf_;
+      MatrixHomogeneous correctionRf_;
+
+      double timeBeforeFlyingFootCorrection_;
+      unsigned int iterationsSinceLastSupportLf_;
+      unsigned int iterationsSinceLastSupportRf_;
+      // Temporary variables for internal computation
+      VectorUTheta uth_;
+      MatrixRotation R_;
+      Vector translation_;
+      Vector zmp_;
+
       Vector debug_;
     }; // class Stabilizer
 
