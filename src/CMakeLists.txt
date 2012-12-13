@@ -31,7 +31,7 @@ SET(integrator-force-exact_plugins_dependencies integrator-force)
 
 
 FOREACH(lib ${libs})
-  ADD_LIBRARY(${lib} SHARED ${lib}.cpp)
+  ADD_LIBRARY(${lib} SHARED ${lib}.cpp ${${lib}_EXTRA_SOURCES})
 
   SET_TARGET_PROPERTIES(${lib} PROPERTIES
     PREFIX ""
