@@ -170,6 +170,8 @@ namespace sot {
       Signal <MatrixHomogeneous, int> correctionLfSOUT_;
       // Correction to apply to right foot for flexibility compensation
       Signal <MatrixHomogeneous, int> correctionRfSOUT_;
+      // Observation of vertical linear flexibility
+      Signal <Vector, int> flexZobsSOUT_;
       // Position and velocity of center of mass
       Signal <dynamicgraph::Vector, int> debugSOUT_;
 
@@ -208,6 +210,9 @@ namespace sot {
       MatrixHomogeneous stateFlexInv_;
       MatrixHomogeneous correctionLf_;
       MatrixHomogeneous correctionRf_;
+
+      // Observation of vertical flexibility: (\zeta - \zeta_{ref}, Fz)
+      Vector flexZobs_;
 
       double timeBeforeFlyingFootCorrection_;
       unsigned int iterationsSinceLastSupportLf_;

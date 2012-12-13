@@ -18,7 +18,7 @@ from dynamic_graph.sot.core import Substract_of_vector, Multiply_double_vector,\
     Multiply_of_matrixHomo, Selec_of_vector, Stack_of_vector, \
     Inverse_of_matrixrotation, Multiply_matrix_vector, Kalman
 from dynamic_graph.sot.dynamics import Stabilizer, flexibility_f, \
-    flexibility_h, VarianceDoubleSupport, \
+    flexibility_h, flexibility_fz, flexibility_hz, VarianceDoubleSupport, \
     MatrixHomoToYawOrientation
 from dynamic_graph import plug
 
@@ -35,6 +35,20 @@ Q = ((2e-6, 0., 0., 0., 0.,),
      (0., 0., 0., 0., 0.,),)
 
 R = ((2.5e-5, 0.),(0., 1.,),)
+
+z0 = (0., 0, 0., 0., 100000,)
+Pz0 = ((0.02, 0., 0., 0., 0.,),
+       (0., 0.02, 0., 0., 0.,),
+       (0., 0., 0.03, 0., 0.,),
+       (0., 0., 0., 0.03, 0.,),
+       (0., 0., 0., 0., 1e9,))
+Qz = ((2e-6, 0., 0., 0., 0.,),
+      (0., 1e-8, 0., 0., 0.,),
+      (0., 0., 5e-5, 0., 0.,),
+      (0., 0., 0., 1e-4, 0.,),
+      (0., 0., 0., 0., 0.,),)
+
+Rz = ((2.5e-5, 0.),(0., 100.,),)
 
 def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
                          locald2Com, cosineFoot, suffix):
@@ -77,7 +91,7 @@ def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
     if suffix [-1] == 'x':
         plug (forceSensor, obs.sin2)
     elif suffix [-1] == 'y':
-        minusForce = Multiply_double_vector (robot.name + '_minusForce' +
+        minusForce = Multiply_double_vector (robot.name + '_minusForce_' +
                                              suffix)
         setattr (robot, 'minusForce_' + suffix, minusForce)
         minusForce.sin1.value = -1.
@@ -86,6 +100,28 @@ def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
     else:
         raise RuntimeError ("Suffix should end by 'x' or 'y'.")
     plug (obs.sout, ekf.y)
+
+def createKalmanVertical (robot):
+    # Kalman filter along x axis of right foot
+    # Entity creation
+    robot.ekf_z = Kalman (robot.name + '_EKF_z')
+    robot.fz = flexibility_fz (robot.name + '_fz')
+    robot.hz = flexibility_hz (robot.name + '_hz')
+    robot.control_z = Selec_of_vector (robot.name + '_control_z')
+    robot.control_z.selec (2, 3)
+    robot.ekf_z.R.value = Rz
+    robot.ekf_z.setInitialState (z0)
+    robot.ekf_z.setInitialVariance (Pz0)
+    plug (robot.stabilizer.d2com, robot.control_z.sin)
+    plug (robot.control_z.sout, robot.fz.control)
+    plug (robot.stabilizer.flexZobs, robot.ekf_z.y)
+    plug (robot.fz.newState, robot.ekf_z.x_pred)
+    plug (robot.fz.jacobian, robot.ekf_z.F)
+    plug (robot.fz.newState, robot.hz.state)
+    plug (robot.hz.observation, robot.ekf_z.y_pred)
+    plug (robot.hz.jacobian, robot.ekf_z.H)
+    plug (robot.ekf_z.x_est, robot.fz.state)
+    robot.ekf_z.Q.value = Qz
 
 def createKalmanFilterFeet (robot):
     createKalmanOneFoot (robot = robot, forceSensor = robot.device.forceRLEG,
@@ -131,6 +167,8 @@ def createKalmanFilterFeet (robot):
     robot.obs_lfy.selec1 (1, 2)
     robot.obs_lfy.selec2 (3, 4)
     robot.f_lfy.control.recompute (0)
+
+    createKalmanVertical (robot = robot)
 
 def createStabilizer (robot):
     robot.dynamic.com.recompute(0)

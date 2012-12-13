@@ -105,8 +105,8 @@ namespace sot {
       ("Stabilizer("+inName+")::output(MatrixHomo)::correction_lf"),
       correctionRfSOUT_
       ("Stabilizer("+inName+")::output(MatrixHomo)::correction_rf"),
-      debugSOUT_
-      ("Stabilizer("+inName+")::output(vector)::debug"),
+      flexZobsSOUT_ ("Stabilizer("+inName+")::output(Vector)::flexZobs"),
+      debugSOUT_ ("Stabilizer("+inName+")::output(vector)::debug"),
       gain1_ (4), gain2_ (4),
       prevCom_(3), flexAngle_ (2), flexDeriv_ (2),
       dcom_ (3), dt_ (.005), on_ (false),
@@ -115,6 +115,7 @@ namespace sot {
       cosineLeftFootX_ (0.), cosineLeftFootY_ (0.),
       cosineRightFootX_ (0.), cosineRightFootY_ (0.),
       stateFlex_ (), stateFlexInv_ (), correctionLf_ (), correctionRf_ (),
+      flexZobs_ (2),
       timeBeforeFlyingFootCorrection_ (.1),
       iterationsSinceLastSupportLf_ (0), iterationsSinceLastSupportRf_ (0),
       uth_ (),
@@ -135,7 +136,7 @@ namespace sot {
 			  << cosineLeftFootXSOUT_ << cosineLeftFootYSOUT_);
       signalRegistration (nbSupportSOUT_);
       signalRegistration (stateFlexInvSOUT_ << correctionLfSOUT_
-			  << correctionRfSOUT_);
+			  << correctionRfSOUT_ << flexZobsSOUT_);
       signalRegistration (debugSOUT_);
 
       taskSOUT.addDependency (deltaComSIN_);
@@ -274,6 +275,7 @@ namespace sot {
       if (frz < 0) frz = 0;
       if (flz < 0) flz = 0;
       double fz = flz + frz;
+      flexZobs_ (1) = fz;
       if (fz == 0) {
 	flexAngle_ (0) = 0;
 	flexAngle_ (1) = 0;
@@ -368,7 +370,6 @@ namespace sot {
       const MatrixHomogeneous& rightFootPosition =
 	rightFootPositionSIN_.access (time);
       const double& gain = controlGainSIN_.access (time);
-      const double& sideGain = sideGainSIN_.access (time);
 
       computeFlexibility (time);
 
@@ -376,9 +377,13 @@ namespace sot {
       double y = deltaCom_ (1);
       double z = deltaCom (2);
 
-      double theta0, dtheta0, norm, u2x, u2y, u1x, u1y,
-	lat, dlat, ddlat;
-      double theta1, dtheta1, delta_x, delta_y, theta, dtheta, xi, dxi, ddxi;
+      // z-component of center of mass deviation in global frame
+      flexZobs_ (0) = stateFlex_ (2, 0) * x + stateFlex_ (2, 1) * y +
+	stateFlex_ (2, 2) * z;
+      flexZobsSOUT_.setConstant (flexZobs_);
+
+      double theta0, dtheta0, norm, u2x, u2y, u1x, u1y;
+      double theta1, dtheta1, delta_x, delta_y, ddxi;
 
       // compute component of angle orthogonal to the line joining the feet
       delta_x = leftFootPosition (0, 3) - rightFootPosition (0, 3);
@@ -402,6 +407,7 @@ namespace sot {
       case 0:
 	dcom_ (0) = -gain * x;
 	dcom_ (1) = -gain * y;
+	dcom_ (2) = -gain * z;
 	break;
       case 1: //single support
 	//along x
@@ -416,6 +422,8 @@ namespace sot {
 	d2com_ (1) = - (gain1_ (0)*y + gain1_ (1)*theta1 +
 			gain1_ (2)*dcom_ (1) + gain1_ (3)*dtheta1);
 	dcom_ (1) += dt_ * d2com_ (1);
+	d2com_ (2) = -2*gain*dcom_ (2) - gain*gain*z;
+	dcom_ (2) += dt_ * d2com_ (2);
 	break;
       case 2: //double support
 	//along x
@@ -430,11 +438,12 @@ namespace sot {
 	d2com_ (1) = - (gain2_ (0)*y + gain2_ (1)*theta1 +
 			gain2_ (2)*dcom_ (1) + gain2_ (3)*dtheta1);
 	dcom_ (1) += dt_ * d2com_ (1);
+	d2com_ (2) = -2*gain*dcom_ (2) - gain*gain*z;
+	dcom_ (2) += dt_ * d2com_ (2);
 	break;
       default:
 	break;
       };
-      dcom_ (2) = -gain * z;
 
       comdot.resize (3);
       comdot [0].setSingleBound (comdotRef (0) + dcom_ (0));

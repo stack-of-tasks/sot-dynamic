@@ -77,7 +77,7 @@ namespace sot {
 	}
       }; // class Function
       //
-      // State transition of time discretized system
+      // State transition of time discretized system (angular flexibility)
       //
       //   x    =  f (x , u )
       //    k+1        k   k
@@ -268,7 +268,7 @@ namespace sot {
 	  Function (name),
 	  observationSOUT_ ("flexibility_h(" + name +
 			    ")::output(vector)::observation"),
-	  jacobianSOUT_ ("flexibility_H(" + name +
+	  jacobianSOUT_ ("flexibility_h(" + name +
 			 ")::output(vector)::jacobian")
 	{
 	  signalRegistration (observationSOUT_ << jacobianSOUT_);
@@ -321,13 +321,177 @@ namespace sot {
 	    "  angular deviation and derivatives of these two values, along a "
 	    "local\n"
 	    "  axis of one foot.\n"
-	    "  Observation if defined by center of mass deviation and moment "
+	    "  Observation is defined by center of mass deviation and moment "
 	    "at the ankle\n";
 	}
       }; // class h
 
       DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (f, "flexibility_f");
       DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (h, "flexibility_h");
+
+      //
+      // State transition of time discretized system (linear vertical
+      //                                              flexibility)
+      //
+      //   x    =  f (x , u )
+      //    k+1        k   k
+      //
+      //   with
+      //        ..
+      //   u  = xi,   x  = x (k dt)
+      //    k          k
+      //
+      class fz : public Function
+      {
+	SignalPtr <Vector, int> controlSIN_;
+	Signal <Vector, int> newStateSOUT_;
+	Signal <Matrix, int> jacobianSOUT_;
+
+	DYNAMIC_GRAPH_ENTITY_DECL();
+	fz (const std::string& name) :
+	  Function (name),
+	  controlSIN_ (0, "flexibility_fz(" + name +
+		       ")::input(vector)::control"),
+	  newStateSOUT_ ("flexibility_fz(" + name +
+			 ")::output(vector)::newState"),
+	  jacobianSOUT_ ("flexibility_fz(" + name +
+			 ")::output(vector)::jacobian")
+
+	{
+	  signalRegistration (controlSIN_ << newStateSOUT_ << jacobianSOUT_);
+	  newStateSOUT_.setFunction (boost::bind (&fz::computeNewState, this,
+						  _1, _2));
+	  newStateSOUT_.addDependency (controlSIN_);
+	  jacobianSOUT_.setFunction (boost::bind (&fz::computeJacobian, this,
+						  _1, _2));
+	  jacobianSOUT_.addDependency (controlSIN_);
+	}
+
+	Vector& computeNewState (Vector& x, const int& time)
+	{
+	  double m = Stabilizer::m_;
+
+	  const Vector& state = stateSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.access (time);
+
+	  double zeta = state (0);
+	  double th = state (1);
+	  double dzeta = state (2);
+	  double dth = state (3);
+	  double kz = state (4);
+
+	  double u = control (0);
+	  x.resize (5);
+
+	  x (0) = zeta + dt_ * dzeta;
+	  x (1) = th + dt_ * dth;
+	  x (2) = dzeta + dt_ * u;
+	  x (3) = dth + dt_ * (-kz/m - u);
+	  x (4) = kz;
+
+	  return x;
+	}
+
+	Matrix& computeJacobian (Matrix& J, const int& t)
+	{
+	  double m = Stabilizer::m_;
+
+	  const Vector& state = stateSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.access (t);
+
+	  double kz = state (4);
+
+	  J.resize (5, 5);
+	  J.setIdentity ();
+	  J (0, 2) = dt_;
+	  J (1, 3) = dt_;
+	  J (3, 1) = dt_ * (-kz/m);
+
+	  return J;
+	}
+	std::string getDocString () const
+	{
+	  return
+	    "State transition for foot flexibility along z axis\n"
+	    "\n"
+	    "  Compute expected state at time k from state and control at time"
+	    " k-1.\n"
+	    "  State is defined by center of mass deviation (wrt reference), "
+	    "flexibility\n"
+	    "  linear deviation and derivatives of these two values.\n";
+	}
+      };  // class f
+
+      //
+      // Observation function
+      //
+      class hz : public Function
+      {
+	SignalTimeDependent <Vector, int> observationSOUT_;
+	SignalTimeDependent <Matrix, int> jacobianSOUT_;
+
+	DYNAMIC_GRAPH_ENTITY_DECL();
+	hz (const std::string& name) :
+	  Function (name),
+	  observationSOUT_ ("flexibility_hz(" + name +
+			    ")::output(vector)::observation"),
+	  jacobianSOUT_ ("flexibility_hz(" + name +
+			 ")::output(vector)::jacobian")
+	{
+	  signalRegistration (observationSOUT_ << jacobianSOUT_);
+	  observationSOUT_.setFunction
+	    (boost::bind (&hz::computeObservation, this, _1, _2));
+	  observationSOUT_.addDependency (stateSIN_);
+	  jacobianSOUT_.setFunction (boost::bind (&hz::computeJacobian,
+						  this, _1, _2));
+	  jacobianSOUT_.addDependency (stateSIN_);
+	}
+
+	Vector& computeObservation (Vector& obs, const int& time)
+	{
+	  const Vector& state = stateSIN_.access (time);
+
+	  double zeta = state (0);
+	  double th = state (1);
+	  double kz = state (4);
+
+	  obs.resize (2);
+	  obs (0) = zeta;
+	  obs (1) = - kz * th;
+
+	  return obs;
+	}
+	Matrix& computeJacobian (Matrix& J, const int& time)
+	{
+	  const Vector& state = stateSIN_.access (time);
+
+	  double th = state (1);
+	  double kz = state (4);
+
+	  J.resize (2, 5);
+	  J.setZero ();
+	  J (0, 0) = 1.;
+	  J (1, 1) = -kz;
+	  J (1, 4) = -th;
+
+	  return J;
+	}
+	std::string getDocString () const
+	{
+	  return
+	    "Observation function for foot flexibility along z axis\n"
+	    "\n"
+	    "  Compute expected observation at time k from state at time k.\n"
+	    "  State is defined by center of mass deviation (wrt reference), "
+	    "flexibility\n"
+	    "  angular deviation and derivatives of these two values\n"
+	    "  Observation is defined by center of mass deviation and vertical\n"
+	    "  component of the forces in the feet\n";
+	}
+      }; // class hz
+
+      DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (fz, "flexibility_fz");
+      DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (hz, "flexibility_hz");
 
     } // namespace flexibility
 
