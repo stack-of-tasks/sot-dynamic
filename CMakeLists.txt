@@ -60,7 +60,8 @@ SET(libs
   zmp-from-forces
   )
 
-SET (stabilizer_EXTRA_SOURCES stabilizer.hh flexibility-estimation.cpp)
+SET (stabilizer_EXTRA_SOURCES stabilizer.hh flexibility-estimation.cpp
+  flexibility-compensation.hh flexibility-compensation.cpp)
 
 LIST(APPEND libs dynamic)
 

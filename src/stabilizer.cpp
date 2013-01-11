@@ -99,12 +99,18 @@ namespace sot {
       ("Stabilizer("+inName+")::output(double)::cosine_lfy"),
       nbSupportSOUT_
       ("Stabilizer("+inName+")::output(unsigned int)::nbSupport"),
-      stateFlexInvSOUT_
-      ("Stabilizer("+inName+")::output(MatrixHomo)::stateFlex_inv"),
-      correctionLfSOUT_
-      ("Stabilizer("+inName+")::output(MatrixHomo)::correction_lf"),
-      correctionRfSOUT_
-      ("Stabilizer("+inName+")::output(MatrixHomo)::correction_rf"),
+      flexPositionSOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexPosition"),
+      flexPositionLfSOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexPosition_lf"),
+      flexPositionRfSOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexPosition_rf"),
+      flexVelocitySOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity"),
+      flexVelocityLfSOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity_lf"),
+      flexVelocityRfSOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity_rf"),
       flexZobsSOUT_ ("Stabilizer("+inName+")::output(Vector)::flexZobs"),
       debugSOUT_ ("Stabilizer("+inName+")::output(vector)::debug"),
       gain1_ (4), gain2_ (4),
@@ -114,7 +120,8 @@ namespace sot {
       deltaCom_ (3),
       cosineLeftFootX_ (0.), cosineLeftFootY_ (0.),
       cosineRightFootX_ (0.), cosineRightFootY_ (0.),
-      stateFlex_ (), stateFlexInv_ (), correctionLf_ (), correctionRf_ (),
+      flexPosition_ (), flexPositionLf_ (), flexPositionRf_ (),
+      flexVelocity_ (6), flexVelocityLf_ (6), flexVelocityRf_ (6),
       flexZobs_ (2),
       timeBeforeFlyingFootCorrection_ (.1),
       iterationsSinceLastSupportLf_ (0), iterationsSinceLastSupportRf_ (0),
@@ -135,8 +142,10 @@ namespace sot {
       signalRegistration (cosineRightFootXSOUT_ << cosineRightFootYSOUT_
 			  << cosineLeftFootXSOUT_ << cosineLeftFootYSOUT_);
       signalRegistration (nbSupportSOUT_);
-      signalRegistration (stateFlexInvSOUT_ << correctionLfSOUT_
-			  << correctionRfSOUT_ << flexZobsSOUT_);
+      signalRegistration (flexPositionSOUT_ << flexPositionLfSOUT_
+			  << flexPositionRfSOUT_ << flexZobsSOUT_);
+      signalRegistration (flexVelocitySOUT_ << flexVelocityLfSOUT_
+			  << flexVelocityRfSOUT_);
       signalRegistration (debugSOUT_);
 
       taskSOUT.addDependency (deltaComSIN_);
@@ -171,6 +180,7 @@ namespace sot {
       sideGainSIN_.setConstant (1.);
       debug_.setZero ();
       debugSOUT_.setConstant (debug_);
+      flexVelocity_.setZero ();
 
       std::string docstring;
       docstring =
@@ -335,36 +345,49 @@ namespace sot {
       deltaCom_ (1) = (frz * deltaComRfy + flz * deltaComLfy)/fz;
       dcom_ (0) = (frz * dcomRfx + flz * dcomLfx)/fz;
       dcom_ (1) = (frz * dcomRfy + flz * dcomLfy)/fz;
-      // Compute inverses of flexibility transformations
+      // Compute flexibility transformations and velocities
       if (fz != 0) {
 	zmp_ (0) = (frz * Mr (0, 3) + flz * Ml (0, 3))/fz;
 	zmp_ (1) = (frz * Mr (1, 3) + flz * Ml (1, 3))/fz;
+	zmp_ (2) = (frz * Mr (2, 3) + flz * Ml (2, 3))/fz;
 	uth_ (0) = flexAngle_ (1);
 	uth_ (1) = -flexAngle_ (0);
 	translation_ = zmp_ - R_ * zmp_;
 	uth_.toMatrix (R_);
 	for (std::size_t row = 0; row < 3; ++row) {
 	  for (std::size_t col = 0; col < 3; ++col) {
-	    stateFlex_ (row, col) = R_ (row, col);
+	    flexPosition_ (row, col) = R_ (row, col);
 	  }
-	  stateFlex_ (row, 3) = translation_ (row);
-	  stateFlex_.inverse (stateFlexInv_);
+	  flexPosition_ (row, 3) = translation_ (row);
 	}
+	flexVelocity_ (0) = zmp_ (2) * flexDeriv_ (0);
+	flexVelocity_ (1) = zmp_ (2) * flexDeriv_ (1);
+	flexVelocity_ (2) = -zmp_ (0)*flexDeriv_ (0)-zmp_ (1)*flexDeriv_ (1);
+	flexVelocity_ (3) = flexDeriv_ (1);
+	flexVelocity_ (4) = -flexDeriv_ (0);
+	
 	if (iterationsSinceLastSupportLf_ * dt_ >
 	    timeBeforeFlyingFootCorrection_) {
-	  correctionLf_ = stateFlexInv_;
+	  flexPositionLf_ = flexPosition_;
+	  flexVelocityLf_ = flexVelocity_;
 	} else {
-	  correctionLf_.setIdentity ();
+	  flexPositionLf_.setIdentity ();
+	  flexVelocityLf_.setZero ();
 	}
 	if (iterationsSinceLastSupportRf_ * dt_ >
 	    timeBeforeFlyingFootCorrection_) {
-	  correctionRf_ = stateFlexInv_;
+	  flexPositionRf_ = flexPosition_;
+	  flexVelocityRf_ = flexVelocity_;
 	} else {
-	  correctionRf_.setIdentity ();
+	  flexPositionRf_.setIdentity ();
+	  flexVelocityRf_.setZero ();
 	}
-	stateFlexInvSOUT_.setConstant (stateFlexInv_);
-	correctionLfSOUT_.setConstant (correctionLf_);
-	correctionRfSOUT_.setConstant (correctionRf_);
+	flexPositionSOUT_.setConstant (flexPosition_);
+	flexPositionLfSOUT_.setConstant (flexPositionLf_);
+	flexPositionRfSOUT_.setConstant (flexPositionRf_);
+	flexVelocitySOUT_.setConstant (flexVelocity_);
+	flexVelocityLfSOUT_.setConstant (flexVelocityLf_);
+	flexVelocityRfSOUT_.setConstant (flexVelocityRf_);
       }
     }
 
@@ -388,8 +411,8 @@ namespace sot {
       double z = deltaCom (2);
 
       // z-component of center of mass deviation in global frame
-      flexZobs_ (0) = stateFlex_ (2, 0) * x + stateFlex_ (2, 1) * y +
-	stateFlex_ (2, 2) * z;
+      flexZobs_ (0) = flexPosition_ (2, 0) * x + flexPosition_ (2, 1) * y +
+	flexPosition_ (2, 2) * z;
       flexZobsSOUT_.setConstant (flexZobs_);
 
       double theta0, dtheta0, norm, u2x, u2y, u1x, u1y;

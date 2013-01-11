@@ -163,13 +163,22 @@ namespace sot {
       SignalTimeDependent <double, int> cosineLeftFootYSOUT_;
       // Number of support feet
       SignalTimeDependent <unsigned int, int> nbSupportSOUT_;
-      // Correction to apply to a geometric feature to compensate for
-      // flexibility
-      Signal <MatrixHomogeneous, int> stateFlexInvSOUT_;
-      // Correction to apply to left foot for flexibility compensation
-      Signal <MatrixHomogeneous, int> correctionLfSOUT_;
-      // Correction to apply to right foot for flexibility compensation
-      Signal <MatrixHomogeneous, int> correctionRfSOUT_;
+      // Position of flexibility as a matrix homogeneous
+      Signal <MatrixHomogeneous, int> flexPositionSOUT_;
+      // Position of flexibility to compensate for left foot
+      // Identity if left foot in contact
+      Signal <MatrixHomogeneous, int> flexPositionLfSOUT_;
+      // Position of flexibility to compensate for right foot
+      // Identity if right foot in contact
+      Signal <MatrixHomogeneous, int> flexPositionRfSOUT_;
+      // Veclocity of flexibility as matrix homogeneous
+      Signal <Vector, int> flexVelocitySOUT_;
+      // Velocity of flexibility to compensate for left foot
+      // Zero if left foot in contact
+      Signal <Vector, int> flexVelocityLfSOUT_;
+      // Velocity of flexibility to compensate for right foot
+      // Zero if right foot in contact
+      Signal <Vector, int> flexVelocityRfSOUT_;
       // Observation of vertical linear flexibility
       Signal <Vector, int> flexZobsSOUT_;
       // Position and velocity of center of mass
@@ -206,10 +215,12 @@ namespace sot {
       double cosineRightFootX_;
       double cosineRightFootY_;
 
-      MatrixHomogeneous stateFlex_;
-      MatrixHomogeneous stateFlexInv_;
-      MatrixHomogeneous correctionLf_;
-      MatrixHomogeneous correctionRf_;
+      MatrixHomogeneous flexPosition_;
+      MatrixHomogeneous flexPositionLf_;
+      MatrixHomogeneous flexPositionRf_;
+      Vector flexVelocity_;
+      Vector flexVelocityLf_;
+      Vector flexVelocityRf_;
 
       // Observation of vertical flexibility: (\zeta - \zeta_{ref}, Fz)
       Vector flexZobs_;
