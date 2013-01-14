@@ -36,12 +36,12 @@ Q = ((2e-6, 0., 0., 0., 0.,),
 
 R = ((2.5e-5, 0.),(0., 1.,),)
 
-z0 = (0., 0, 0., 0., 200000,)
+z0 = (0., 0, 0., 0., 150000.,)
 Pz0 = ((0.02, 0., 0., 0., 0.,),
        (0., 0.02, 0., 0., 0.,),
        (0., 0., 0.03, 0., 0.,),
        (0., 0., 0., 0.03, 0.,),
-       (0., 0., 0., 0., 1e9,))
+       (0., 0., 0., 0., 1e-4,))
 Qz = ((2e-6, 0., 0., 0., 0.,),
       (0., 1e-8, 0., 0., 0.,),
       (0., 0., 5e-5, 0., 0.,),
@@ -121,6 +121,7 @@ def createKalmanVertical (robot):
     plug (robot.hz.observation, robot.ekf_z.y_pred)
     plug (robot.hz.jacobian, robot.ekf_z.H)
     plug (robot.ekf_z.x_est, robot.fz.state)
+    plug (robot.ekf_z.x_est, robot.stabilizer.stateFlex_z)
     robot.ekf_z.Q.value = Qz
 
 def createKalmanFilterFeet (robot):

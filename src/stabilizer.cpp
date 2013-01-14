@@ -84,6 +84,8 @@ namespace sot {
       (NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfx"),
       stateFlexLfySIN_
       (NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfy"),
+      stateFlexZSIN_
+      (NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_z"),
       controlGainSIN_
       (NULL, "Stabilizer("+inName+")::input(double)::controlGain"),
       sideGainSIN_
@@ -113,8 +115,8 @@ namespace sot {
       ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity_rf"),
       flexZobsSOUT_ ("Stabilizer("+inName+")::output(Vector)::flexZobs"),
       debugSOUT_ ("Stabilizer("+inName+")::output(vector)::debug"),
-      gain1_ (4), gain2_ (4),
-      prevCom_(3), flexValue_ (2), flexDeriv_ (2),
+      gain1_ (4), gain2_ (4), gainz_ (4),
+      prevCom_(3), flexValue_ (3), flexDeriv_ (3),
       dcom_ (3), dt_ (.005), on_ (false),
       forceThreshold_ (.036*m_*g_), angularStiffness_ (425.), d2com_ (3),
       deltaCom_ (3),
@@ -135,7 +137,8 @@ namespace sot {
       signalRegistration (leftFootPositionSIN_ << rightFootPositionSIN_
 			  << forceRightFootSIN_ << forceLeftFootSIN_);
       signalRegistration (stateFlexRfxSIN_ << stateFlexRfySIN_
-			  << stateFlexLfxSIN_ << stateFlexLfySIN_);
+			  << stateFlexLfxSIN_ << stateFlexLfySIN_
+			  << stateFlexZSIN_);
       signalRegistration (controlGainSIN_);
       signalRegistration (sideGainSIN_);
       signalRegistration (d2comSOUT_);
@@ -232,10 +235,23 @@ namespace sot {
 				    ("Get gains double support",
 				     "vector")));
 
+      addCommand ("setGainz",
+		  makeDirectSetter (*this, &gainz_,
+				    docDirectSetter
+				    ("Set gains of vertical flexibility",
+				     "vector")));
+
+      addCommand ("getGainz",
+		  makeDirectGetter (*this, &gainz_,
+				    docDirectGetter
+				    ("Get gains of vertical flexibility",
+				     "vector")));
+
       prevCom_.fill (0.);
       flexValue_.fill (0.);
       flexDeriv_.fill (0.);
-
+      flexZobs_.setZero ();
+      flexZobsSOUT_.setConstant (flexZobs_);
       // Single support gains for
       //  - kth = 510,
       //  - zeta = .8
@@ -256,6 +272,15 @@ namespace sot {
       gain2_ (2) = 37.326305882352941;
       gain2_ (3) = -10.661044705882359;
 
+      // Vectical gains for
+      //  - kz = 150000
+      //  - m = 56
+      //  - eigen values = 21, 21, 21, 21.
+      gainz_ (0) = 25.23;
+      gainz_ (1) = -124.77;
+      gainz_ (2) = 10.19;
+      gainz_ (3) = -9.81;
+
       zmp_.setZero ();
     }
 
@@ -266,6 +291,7 @@ namespace sot {
       const Vector& flexRfy = stateFlexRfySIN_.access (time);
       const Vector& flexLfx = stateFlexLfxSIN_.access (time);
       const Vector& flexLfy = stateFlexLfySIN_.access (time);
+      const Vector& flexZ = stateFlexZSIN_.access (time);
       const MatrixHomogeneous& Mr = rightFootPositionSIN_.access (time);
       const MatrixHomogeneous& Ml = leftFootPositionSIN_.access (time);
       const Vector& fr = forceRightFootSIN_.access (time);
@@ -295,7 +321,7 @@ namespace sot {
       if (frz < 0) frz = 0;
       if (flz < 0) flz = 0;
       double Fz = flz + frz;
-      flexZobs_ (1) = Fz;
+      flexZobs_ (1) = Fz - m_ * g_;
       if (Fz == 0) {
 	flexValue_ (0) = 0;
 	flexValue_ (1) = 0;
@@ -333,8 +359,10 @@ namespace sot {
 
       flexValue_ (0) = (frz * flexAngleRfx + flz * flexAngleLfx)/Fz;
       flexValue_ (1) = (frz * flexAngleRfy + flz * flexAngleLfy)/Fz;
+      flexValue_ (2) = flexZ (1);
       flexDeriv_ (0) = (frz * flexDerivRfx + flz * flexDerivLfx)/Fz;
       flexDeriv_ (1) = (frz * flexDerivRfy + flz * flexDerivLfy)/Fz;
+      flexDeriv_ (2) = flexZ (3);
       // Compute deviation of center of mass
       deltaComLfx = cth * flexLfx (0) - sth * flexLfy (0);
       deltaComLfy = sth * flexLfx (0) + cth * flexLfy (0);
@@ -343,8 +371,10 @@ namespace sot {
 
       deltaCom_ (0) = (frz * deltaComRfx + flz * deltaComLfx)/Fz;
       deltaCom_ (1) = (frz * deltaComRfy + flz * deltaComLfy)/Fz;
+      deltaCom_ (2) = flexZ (0);
       dcom_ (0) = (frz * dcomRfx + flz * dcomLfx)/Fz;
       dcom_ (1) = (frz * dcomRfy + flz * dcomLfy)/Fz;
+      dcom_ (2) = flexZ (2);
       // Compute flexibility transformations and velocities
       if (Fz != 0) {
 	zmp_ (0) = (frz * Mr (0, 3) + flz * Ml (0, 3))/Fz;
@@ -408,15 +438,16 @@ namespace sot {
 
       double x = deltaCom_ (0);
       double y = deltaCom_ (1);
-      double z = deltaCom (2);
+      double z = deltaCom_ (2);
 
       // z-component of center of mass deviation in global frame
-      flexZobs_ (0) = flexPosition_ (2, 0) * x + flexPosition_ (2, 1) * y +
-	flexPosition_ (2, 2) * z;
+      flexZobs_ (0) = z;
       flexZobsSOUT_.setConstant (flexZobs_);
 
       double theta0, dtheta0, norm, u2x, u2y, u1x, u1y;
       double theta1, dtheta1, delta_x, delta_y, ddxi;
+      double thetaz = flexValue_ (2);
+      double dthetaz = flexDeriv_ (2);
 
       // compute component of angle orthogonal to the line joining the feet
       delta_x = leftFootPosition (0, 3) - rightFootPosition (0, 3);
@@ -455,7 +486,9 @@ namespace sot {
 	d2com_ (1) = - (gain1_ (0)*y + gain1_ (1)*theta1 +
 			gain1_ (2)*dcom_ (1) + gain1_ (3)*dtheta1);
 	dcom_ (1) += dt_ * d2com_ (1);
-	d2com_ (2) = -2*gain*dcom_ (2) - gain*gain*z;
+	// along z
+	d2com_ (2) = - (gainz_ (0)*z + gainz_ (1)*thetaz +
+			gainz_ (2)*dcom_ (2) + gainz_ (3)*dthetaz);
 	dcom_ (2) += dt_ * d2com_ (2);
 	break;
       case 2: //double support
@@ -471,7 +504,9 @@ namespace sot {
 	d2com_ (1) = - (gain2_ (0)*y + gain2_ (1)*theta1 +
 			gain2_ (2)*dcom_ (1) + gain2_ (3)*dtheta1);
 	dcom_ (1) += dt_ * d2com_ (1);
-	d2com_ (2) = -2*gain*dcom_ (2) - gain*gain*z;
+	// along z
+	d2com_ (2) = - (gainz_ (0)*z + gainz_ (1)*thetaz +
+			gainz_ (2)*dcom_ (2) + gainz_ (3)*dthetaz);
 	dcom_ (2) += dt_ * d2com_ (2);
 	break;
       default:

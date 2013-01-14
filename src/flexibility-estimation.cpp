@@ -386,7 +386,7 @@ namespace sot {
 	  x (0) = zeta + dt_ * dzeta;
 	  x (1) = th + dt_ * dth;
 	  x (2) = dzeta + dt_ * u;
-	  x (3) = dth + dt_ * (-kz/m - u);
+	  x (3) = dth + dt_ * (-kz/m*th - u);
 	  x (4) = kz;
 
 	  return x;

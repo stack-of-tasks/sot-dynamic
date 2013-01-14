@@ -149,6 +149,8 @@ namespace sot {
       SignalPtr <dynamicgraph::Vector, int> stateFlexLfxSIN_;
       // Left foot flexibility state along local y axis
       SignalPtr <dynamicgraph::Vector, int> stateFlexLfySIN_;
+      // vertical flexibility state
+      SignalPtr <dynamicgraph::Vector, int> stateFlexZSIN_;
       // Gain of center task of mass when stabilizer is off
       SignalPtr <double, int> controlGainSIN_;
       // Sideways gain in double support
@@ -185,8 +187,11 @@ namespace sot {
       Signal <dynamicgraph::Vector, int> debugSOUT_;
 
       /// Gains single support
-      Vector gain1_;      /// Gains double support
+      Vector gain1_;
+      /// Gains double support
       Vector gain2_;
+      /// Gains z correction
+      Vector gainz_;
       /// Store center of mass for finite-difference evaluation of velocity
       Vector prevCom_;
       /// Angle of the flexibility
