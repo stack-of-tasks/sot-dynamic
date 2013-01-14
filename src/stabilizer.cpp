@@ -114,7 +114,7 @@ namespace sot {
       flexZobsSOUT_ ("Stabilizer("+inName+")::output(Vector)::flexZobs"),
       debugSOUT_ ("Stabilizer("+inName+")::output(vector)::debug"),
       gain1_ (4), gain2_ (4),
-      prevCom_(3), flexAngle_ (2), flexDeriv_ (2),
+      prevCom_(3), flexValue_ (2), flexDeriv_ (2),
       dcom_ (3), dt_ (.005), on_ (false),
       forceThreshold_ (.036*m_*g_), angularStiffness_ (425.), d2com_ (3),
       deltaCom_ (3),
@@ -233,7 +233,7 @@ namespace sot {
 				     "vector")));
 
       prevCom_.fill (0.);
-      flexAngle_.fill (0.);
+      flexValue_.fill (0.);
       flexDeriv_.fill (0.);
 
       // Single support gains for
@@ -294,11 +294,11 @@ namespace sot {
       }
       if (frz < 0) frz = 0;
       if (flz < 0) flz = 0;
-      double fz = flz + frz;
-      flexZobs_ (1) = fz;
-      if (fz == 0) {
-	flexAngle_ (0) = 0;
-	flexAngle_ (1) = 0;
+      double Fz = flz + frz;
+      flexZobs_ (1) = Fz;
+      if (Fz == 0) {
+	flexValue_ (0) = 0;
+	flexValue_ (1) = 0;
 	flexDeriv_ (0) = 0;
 	flexDeriv_ (1) = 0;
 	return;
@@ -331,27 +331,27 @@ namespace sot {
       double flexDerivLfx = cth * flexLfx (3) + sth * flexLfy (3);
       double flexDerivLfy = -sth * flexLfx (3) + cth * flexLfy (3);
 
-      flexAngle_ (0) = (frz * flexAngleRfx + flz * flexAngleLfx)/fz;
-      flexAngle_ (1) = (frz * flexAngleRfy + flz * flexAngleLfy)/fz;
-      flexDeriv_ (0) = (frz * flexDerivRfx + flz * flexDerivLfx)/fz;
-      flexDeriv_ (1) = (frz * flexDerivRfy + flz * flexDerivLfy)/fz;
+      flexValue_ (0) = (frz * flexAngleRfx + flz * flexAngleLfx)/Fz;
+      flexValue_ (1) = (frz * flexAngleRfy + flz * flexAngleLfy)/Fz;
+      flexDeriv_ (0) = (frz * flexDerivRfx + flz * flexDerivLfx)/Fz;
+      flexDeriv_ (1) = (frz * flexDerivRfy + flz * flexDerivLfy)/Fz;
       // Compute deviation of center of mass
       deltaComLfx = cth * flexLfx (0) - sth * flexLfy (0);
       deltaComLfy = sth * flexLfx (0) + cth * flexLfy (0);
       dcomLfx = cth * flexLfx (2) - sth * flexLfy (2);
       dcomLfy = sth * flexLfx (2) + cth * flexLfy (2);
 
-      deltaCom_ (0) = (frz * deltaComRfx + flz * deltaComLfx)/fz;
-      deltaCom_ (1) = (frz * deltaComRfy + flz * deltaComLfy)/fz;
-      dcom_ (0) = (frz * dcomRfx + flz * dcomLfx)/fz;
-      dcom_ (1) = (frz * dcomRfy + flz * dcomLfy)/fz;
+      deltaCom_ (0) = (frz * deltaComRfx + flz * deltaComLfx)/Fz;
+      deltaCom_ (1) = (frz * deltaComRfy + flz * deltaComLfy)/Fz;
+      dcom_ (0) = (frz * dcomRfx + flz * dcomLfx)/Fz;
+      dcom_ (1) = (frz * dcomRfy + flz * dcomLfy)/Fz;
       // Compute flexibility transformations and velocities
-      if (fz != 0) {
-	zmp_ (0) = (frz * Mr (0, 3) + flz * Ml (0, 3))/fz;
-	zmp_ (1) = (frz * Mr (1, 3) + flz * Ml (1, 3))/fz;
-	zmp_ (2) = (frz * Mr (2, 3) + flz * Ml (2, 3))/fz;
-	uth_ (0) = flexAngle_ (1);
-	uth_ (1) = -flexAngle_ (0);
+      if (Fz != 0) {
+	zmp_ (0) = (frz * Mr (0, 3) + flz * Ml (0, 3))/Fz;
+	zmp_ (1) = (frz * Mr (1, 3) + flz * Ml (1, 3))/Fz;
+	zmp_ (2) = (frz * Mr (2, 3) + flz * Ml (2, 3))/Fz;
+	uth_ (0) = flexValue_ (1);
+	uth_ (1) = -flexValue_ (0);
 	translation_ = zmp_ - R_ * zmp_;
 	uth_.toMatrix (R_);
 	for (std::size_t row = 0; row < 3; ++row) {
@@ -444,13 +444,13 @@ namespace sot {
 	break;
       case 1: //single support
 	//along x
-	theta0 = flexAngle_ (0);
+	theta0 = flexValue_ (0);
 	dtheta0 = flexDeriv_ (0);
 	d2com_ (0)= -(gain1_ (0)*x + gain1_ (1)*theta0 +
 		      gain1_ (2)*dcom_ (0) + gain1_ (3)*dtheta0);
 	dcom_ (0) += dt_ * d2com_ (0);
 	// along y
-	theta1 = flexAngle_ (1);
+	theta1 = flexValue_ (1);
 	dtheta1 = flexDeriv_ (1);
 	d2com_ (1) = - (gain1_ (0)*y + gain1_ (1)*theta1 +
 			gain1_ (2)*dcom_ (1) + gain1_ (3)*dtheta1);
@@ -460,13 +460,13 @@ namespace sot {
 	break;
       case 2: //double support
 	//along x
-	theta0 = flexAngle_ (0);
+	theta0 = flexValue_ (0);
 	dtheta0 = flexDeriv_ (0);
 	d2com_ (0)= -(gain2_ (0)*x + gain2_ (1)*theta0 +
 		      gain2_ (2)*dcom_ (0) + gain2_ (3)*dtheta0);
 	dcom_ (0) += dt_ * d2com_ (0);
 	// along y
-	theta1 = flexAngle_ (1);
+	theta1 = flexValue_ (1);
 	dtheta1 = flexDeriv_ (1);
 	d2com_ (1) = - (gain2_ (0)*y + gain2_ (1)*theta1 +
 			gain2_ (2)*dcom_ (1) + gain2_ (3)*dtheta1);

@@ -190,7 +190,7 @@ namespace sot {
       /// Store center of mass for finite-difference evaluation of velocity
       Vector prevCom_;
       /// Angle of the flexibility
-      Vector flexAngle_;
+      Vector flexValue_;
       Vector flexDeriv_;
       /// coordinates of center of mass velocity in moving frame
       Vector dcom_;
