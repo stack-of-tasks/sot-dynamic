@@ -127,6 +127,7 @@ namespace sot {
       flexZobs_ (2),
       timeBeforeFlyingFootCorrection_ (.1),
       iterationsSinceLastSupportLf_ (0), iterationsSinceLastSupportRf_ (0),
+      supportCandidateLf_ (0), supportCandidateRf_ (0),
       uth_ (),
       R_ (), translation_ (3), zmp_ (3), debug_ (4)
     {
@@ -307,14 +308,22 @@ namespace sot {
       if (on_) {
 	if (frz >= forceThreshold_) {
 	  nbSupport_++;
-	  iterationsSinceLastSupportRf_ = 0;
+	  supportCandidateRf_++;
+	  if (supportCandidateRf_ >= 3) {
+	    iterationsSinceLastSupportRf_ = 0;
+	  }
 	} else {
+	  supportCandidateRf_ = 0;
 	  iterationsSinceLastSupportRf_ ++;
 	}
 	if (flz >= forceThreshold_) {
 	  nbSupport_++;
-	  iterationsSinceLastSupportLf_ = 0;
+	  supportCandidateLf_++;
+	  if (supportCandidateLf_ >= 3) {
+	    iterationsSinceLastSupportLf_ = 0;
+	  }
 	} else {
+	  supportCandidateLf_ = 0;
 	  iterationsSinceLastSupportLf_++;
 	}
       }

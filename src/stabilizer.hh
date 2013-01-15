@@ -233,6 +233,8 @@ namespace sot {
       double timeBeforeFlyingFootCorrection_;
       unsigned int iterationsSinceLastSupportLf_;
       unsigned int iterationsSinceLastSupportRf_;
+      unsigned int supportCandidateLf_;
+      unsigned int supportCandidateRf_;
       // Temporary variables for internal computation
       VectorUTheta uth_;
       MatrixRotation R_;
