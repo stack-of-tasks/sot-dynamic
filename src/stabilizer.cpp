@@ -510,18 +510,21 @@ namespace sot {
 	dcom_ (2) += dt_ * d2com_ (2);
 	break;
       case 2: //double support
-	//along x
-	theta0 = flexValue_ (0);
-	dtheta0 = flexDeriv_ (0);
-	d2com_ (0)= -(gain2_ (0)*x + gain2_ (1)*theta0 +
-		      gain2_ (2)*dcom_ (0) + gain2_ (3)*dtheta0);
+	theta = u1x * flexValue_ (0) + u1y * flexValue_ (1);
+	dtheta = u1x * flexDeriv_ (0) + u1y * flexDeriv_ (1);
+	xi = u1x*x + u1y*y;
+	dxi = u1x*dcom_ (0) + u1y*dcom_ (1);
+	ddxi = - (gain2_ (0)*xi + gain2_ (1)*theta + gain2_ (2)*dxi +
+		  gain2_ (3)*dtheta);
+	lat = u2x*x + u2y*y;
+	dlat = u2x*dcom_ (0) + u2y*dcom_ (1);
+	ddlat = -2*sideGain*dlat - sideGain*sideGain*lat;
+
+	d2com_ (0) = ddxi * u1x + ddlat*u2x;
+	d2com_ (1) = ddxi * u1y + ddlat*u2y;
 	dcom_ (0) += dt_ * d2com_ (0);
-	// along y
-	theta1 = flexValue_ (1);
-	dtheta1 = flexDeriv_ (1);
-	d2com_ (1) = - (gain2_ (0)*y + gain2_ (1)*theta1 +
-			gain2_ (2)*dcom_ (1) + gain2_ (3)*dtheta1);
 	dcom_ (1) += dt_ * d2com_ (1);
+
 	// along z
 	d2com_ (2) = - (gainz_ (0)*z + gainz_ (1)*thetaz +
 			gainz_ (2)*dcom_ (2) + gainz_ (3)*dthetaz);
