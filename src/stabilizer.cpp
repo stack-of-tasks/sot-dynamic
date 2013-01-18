@@ -450,7 +450,7 @@ namespace sot {
       double z = deltaCom_ (2);
 
       // z-component of center of mass deviation in global frame
-      flexZobs_ (0) = z;
+      flexZobs_ (0) = deltaCom (2);
       flexZobsSOUT_.setConstant (flexZobs_);
 
       double theta0, dtheta0, norm, u2x, u2y, u1x, u1y;
