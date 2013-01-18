@@ -244,6 +244,8 @@ namespace sot {
       MatrixRotation R_;
       Vector translation_;
       Vector zmp_;
+      double kth_;
+      double u2x_, u2y_, u1x_, u1y_;
 
       Vector debug_;
     }; // class Stabilizer

@@ -305,10 +305,21 @@ namespace sot {
       double deltaComRfx, deltaComRfy, deltaComLfx, deltaComLfy;
       double dcomRfx, dcomRfy, dcomLfx, dcomLfy;
 
+      // compute component of angle orthogonal to the line joining the feet
+      double delta_x = Ml (0, 3) - Mr (0, 3);
+      double delta_y = Ml (1, 3) - Mr (1, 3);
+      double stepLength = sqrt (delta_x*delta_x+delta_y*delta_y);
+
+      u2x_ = delta_x/stepLength;
+      u2y_ = delta_y/stepLength;
+      u1x_ = u2y_;
+      u1y_ = -u2x_;
+
       // Express vertical component of force in global basis
       double flz = Ml (2,0) * fl (0) + Ml(2,1) * fl (1) + Ml (2,2) * fl (2);
       double frz = Mr (2,0) * fr (0) + Mr(2,1) * fr (1) + Mr (2,2) * fr (2);
 
+      kth_ = flexRfx (4) + flexLfx (4);
       nbSupport_ = 0;
       if (on_) {
 	if (frz >= forceThreshold_) {
@@ -462,28 +473,21 @@ namespace sot {
       flexZobs_ (0) = deltaCom (2);
       flexZobsSOUT_.setConstant (flexZobs_);
 
-      double theta0, dtheta0, norm, u2x, u2y, u1x, u1y;
-      double theta1, dtheta1, delta_x, delta_y, ddxi;
+      double theta0, dtheta0;
+      double theta1, dtheta1, ddxi;
+      double xi, dxi, lat, dlat, ddlat;
       double thetaz = flexValue_ (2);
       double dthetaz = flexDeriv_ (2);
+      double fzRef, Zrefx, Zrefy, fz, Zx, Zy;
 
-      // compute component of angle orthogonal to the line joining the feet
-      delta_x = leftFootPosition (0, 3) - rightFootPosition (0, 3);
-      delta_y = leftFootPosition (1, 3) - rightFootPosition (1, 3);
-      norm = sqrt (delta_x*delta_x+delta_y*delta_y);
-      u2x = delta_x/norm;
-      u2y = delta_y/norm;
-      u1x = u2y;
-      u1y = -u2x;
-
-      cosineLeftFootX_ = leftFootPosition (0, 0)*u1x +
-	leftFootPosition (1, 0)*u1y;
-      cosineLeftFootY_ = leftFootPosition (0, 1)*u1x +
-	leftFootPosition (1, 1)*u1y;;
-      cosineRightFootX_ = rightFootPosition (0, 0)*u1x +
-	rightFootPosition (1, 0)*u1y;
-      cosineRightFootY_ = rightFootPosition (0, 1)*u1x +
-	rightFootPosition (1, 1)*u1y;;
+      cosineLeftFootX_ = leftFootPosition (0, 0)*u1x_ +
+	leftFootPosition (1, 0)*u1y_;
+      cosineLeftFootY_ = leftFootPosition (0, 1)*u1x_ +
+	leftFootPosition (1, 1)*u1y_;;
+      cosineRightFootX_ = rightFootPosition (0, 0)*u1x_ +
+	rightFootPosition (1, 0)*u1y_;
+      cosineRightFootY_ = rightFootPosition (0, 1)*u1x_ +
+	rightFootPosition (1, 1)*u1y_;;
 
       switch (nbSupport_) {
       case 0:
@@ -510,18 +514,31 @@ namespace sot {
 	dcom_ (2) += dt_ * d2com_ (2);
 	break;
       case 2: //double support
-	theta = u1x * flexValue_ (0) + u1y * flexValue_ (1);
-	dtheta = u1x * flexDeriv_ (0) + u1y * flexDeriv_ (1);
-	xi = u1x*x + u1y*y;
-	dxi = u1x*dcom_ (0) + u1y*dcom_ (1);
-	ddxi = - (gain2_ (0)*xi + gain2_ (1)*theta + gain2_ (2)*dxi +
-		  gain2_ (3)*dtheta);
-	lat = u2x*x + u2y*y;
-	dlat = u2x*dcom_ (0) + u2y*dcom_ (1);
-	ddlat = -2*sideGain*dlat - sideGain*sideGain*lat;
+	theta0 = u1x_ * flexValue_ (0) + u1y_ * flexValue_ (1);
+	dtheta0 = u1x_ * flexDeriv_ (0) + u1y_ * flexDeriv_ (1);
+	xi = u1x_*x + u1y_*y;
+	dxi = u1x_*dcom_ (0) + u1y_*dcom_ (1);
+	ddxi = - (gain2_ (0)*xi + gain2_ (1)*theta0 + gain2_ (2)*dxi +
+		  gain2_ (3)*dtheta0);
+	lat = u2x_*x + u2y_*y;
+	dlat = u2x_*dcom_ (0) + u2y_*dcom_ (1);
 
-	d2com_ (0) = ddxi * u1x + ddlat*u2x;
-	d2com_ (1) = ddxi * u1y + ddlat*u2y;
+	fz = forceLf (2) + forceRf (2);
+	Zx = (leftFootPosition (0, 3) * forceLf (2) +
+	      rightFootPosition (0, 3) * forceRf (2))/fz;
+	Zy = (leftFootPosition (1, 3) * forceLf (2) +
+	      rightFootPosition (1, 3) * forceRf (2))/fz;
+	fzRef = forceRefLf (2) + forceRefRf (2);
+	Zrefx = (leftFootPosition (0, 3) * forceRefLf (2) +
+		 rightFootPosition (0, 3) * forceRefRf (2))/fzRef;
+	Zrefy = (leftFootPosition (1, 3) * forceRefLf (2) +
+		 rightFootPosition (1, 3) * forceRefRf (2))/fzRef;
+	theta1 = - ((Zx - Zrefx)*u2x_ + (Zy - Zrefy)*u2y_)/kth_;
+	ddlat = - (gain2_ (0)*lat + gain2_ (1)*theta1 + gain2_ (2)*dlat);
+	ddlat = 0;
+
+	d2com_ (0) = ddxi * u1x_ + ddlat*u2x_;
+	d2com_ (1) = ddxi * u1y_ + ddlat*u2y_;
 	dcom_ (0) += dt_ * d2com_ (0);
 	dcom_ (1) += dt_ * d2com_ (1);
 

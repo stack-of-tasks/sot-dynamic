@@ -392,12 +392,11 @@ namespace sot {
 	  return x;
 	}
 
-	Matrix& computeJacobian (Matrix& J, const int& t)
+	Matrix& computeJacobian (Matrix& J, const int&)
 	{
 	  double m = Stabilizer::m_;
 
 	  const Vector& state = stateSIN_.accessCopy ();
-	  const Vector& control = controlSIN_.access (t);
 
 	  double kz = state (4);
 
