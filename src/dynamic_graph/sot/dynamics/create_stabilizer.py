@@ -182,8 +182,10 @@ def createStabilizer (robot):
     robot.comRef.value = robot.dynamic.com.value
     plug (robot.dynamic.com, robot.deltaCom.sin1)
     plug (robot.deltaCom.sout, robot.stabilizer.deltaCom)
-    plug (robot.device.forceRLEG, robot.stabilizer.forceRLEG)
-    plug (robot.device.forceLLEG, robot.stabilizer.forceLLEG)
+    plug (robot.device.forceRLEG, robot.stabilizer.force_rf)
+    plug (robot.device.forceLLEG, robot.stabilizer.force_lf)
+    robot.stabilizer.forceRef_lf.value = (0.,0.,283.2,0.,0.,0.,)
+    robot.stabilizer.forceRef_rf.value = (0.,0.,274.6,0.,0.,0.,)
     # Position of left foot
     robot.leftFootPosition = Multiply_of_matrixHomo (robot.name +
                                                      '_position_lf')

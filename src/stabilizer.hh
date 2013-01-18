@@ -137,10 +137,14 @@ namespace sot {
       SignalPtr <MatrixHomogeneous, int> leftFootPositionSIN_;
       // Position of right foot force sensor in global frame
       SignalPtr <MatrixHomogeneous, int> rightFootPositionSIN_;
-      // Force in right foot sensor
-      SignalPtr <dynamicgraph::Vector, int> forceRightFootSIN_;
       // Force in left foot sensor
       SignalPtr <dynamicgraph::Vector, int> forceLeftFootSIN_;
+      // Force in right foot sensor
+      SignalPtr <dynamicgraph::Vector, int> forceRightFootSIN_;
+      // Reference force in left foot
+      SignalPtr <Vector, int> forceLeftFootRefSIN_;
+      // Reference force in right foot
+      SignalPtr <Vector, int> forceRightFootRefSIN_;
       // Right foot flexibility state along local x axis
       SignalPtr <dynamicgraph::Vector, int> stateFlexRfxSIN_;
       // Right foot flexibility state along local y axis

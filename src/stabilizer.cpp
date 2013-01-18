@@ -72,10 +72,14 @@ namespace sot {
       (NULL, "Stabilizer("+inName+")::input(vector)::leftFootPosition"),
       rightFootPositionSIN_
       (NULL, "Stabilizer("+inName+")::input(vector)::rightFootPosition"),
-      forceRightFootSIN_
-      (NULL, "Stabilizer("+inName+")::input(vector)::forceRLEG"),
       forceLeftFootSIN_
-      (NULL, "Stabilizer("+inName+")::input(vector)::forceLLEG"),
+      (NULL, "Stabilizer("+inName+")::input(vector)::force_lf"),
+      forceRightFootSIN_
+      (NULL, "Stabilizer("+inName+")::input(vector)::force_rf"),
+      forceLeftFootRefSIN_
+      (NULL, "Stabilizer("+inName+")::input(vector)::forceRef_lf"),
+      forceRightFootRefSIN_
+      (NULL, "Stabilizer("+inName+")::input(vector)::forceRef_rf"),
       stateFlexRfxSIN_
       (NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_rfx"),
       stateFlexRfySIN_
@@ -136,7 +140,8 @@ namespace sot {
       signalRegistration (jacobianSIN_);
       signalRegistration (comdotSIN_);
       signalRegistration (leftFootPositionSIN_ << rightFootPositionSIN_
-			  << forceRightFootSIN_ << forceLeftFootSIN_);
+			  << forceRightFootSIN_ << forceLeftFootSIN_
+			  << forceLeftFootRefSIN_ << forceRightFootRefSIN_);
       signalRegistration (stateFlexRfxSIN_ << stateFlexRfySIN_
 			  << stateFlexLfxSIN_ << stateFlexLfySIN_
 			  << stateFlexZSIN_);
@@ -442,6 +447,10 @@ namespace sot {
       const MatrixHomogeneous& rightFootPosition =
 	rightFootPositionSIN_.access (time);
       const double& gain = controlGainSIN_.access (time);
+      const Vector& forceLf = forceLeftFootSIN_.access (time);
+      const Vector& forceRf = forceRightFootSIN_.access (time);
+      const Vector& forceRefLf = forceLeftFootRefSIN_.access (time);
+      const Vector& forceRefRf = forceRightFootRefSIN_.access (time);
 
       computeFlexibility (time);
 
