@@ -90,6 +90,8 @@ namespace sot {
       (NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_lfy"),
       stateFlexZSIN_
       (NULL, "Stabilizer("+inName+")::input(vector)::stateFlex_z"),
+      stateFlexLatSIN_
+      (0, "Stabilizer("+inName+")::input(vector)::stateFlex_lat"),
       controlGainSIN_
       (NULL, "Stabilizer("+inName+")::input(double)::controlGain"),
       sideGainSIN_
@@ -111,13 +113,22 @@ namespace sot {
       ("Stabilizer("+inName+")::output(MatrixHomo)::flexPosition_lf"),
       flexPositionRfSOUT_
       ("Stabilizer("+inName+")::output(MatrixHomo)::flexPosition_rf"),
+      flexPositionLatSOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexPosition_lat"),
       flexVelocitySOUT_
       ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity"),
       flexVelocityLfSOUT_
       ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity_lf"),
       flexVelocityRfSOUT_
       ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity_rf"),
+      flexVelocityLatSOUT_
+      ("Stabilizer("+inName+")::output(MatrixHomo)::flexVelocity_lat"),
       flexZobsSOUT_ ("Stabilizer("+inName+")::output(Vector)::flexZobs"),
+      stepLengthSOUT_ ("Stabilizer("+inName+")::output(double)::stepLength"),
+      flexLatControlSOUT_
+      ("Stabilizer("+inName+")::output(Vector)::flexLatControl"),
+      flexLatObsSOUT_
+      ("Stabilizer("+inName+")::output(Vector)::flexLatObs"),
       debugSOUT_ ("Stabilizer("+inName+")::output(vector)::debug"),
       gain1_ (4), gain2_ (4), gainz_ (4),
       prevCom_(3), flexValue_ (3), flexDeriv_ (3),
@@ -127,8 +138,10 @@ namespace sot {
       cosineLeftFootX_ (0.), cosineLeftFootY_ (0.),
       cosineRightFootX_ (0.), cosineRightFootY_ (0.),
       flexPosition_ (), flexPositionLf_ (), flexPositionRf_ (),
+      flexPositionLat_ (),
       flexVelocity_ (6), flexVelocityLf_ (6), flexVelocityRf_ (6),
-      flexZobs_ (2),
+      flexVelocityLat_ (6),
+      flexZobs_ (2), flexLatControl_ (1), flexLatObs_ (2),
       timeBeforeFlyingFootCorrection_ (.1),
       iterationsSinceLastSupportLf_ (0), iterationsSinceLastSupportRf_ (0),
       supportCandidateLf_ (0), supportCandidateRf_ (0),
@@ -144,7 +157,7 @@ namespace sot {
 			  << forceLeftFootRefSIN_ << forceRightFootRefSIN_);
       signalRegistration (stateFlexRfxSIN_ << stateFlexRfySIN_
 			  << stateFlexLfxSIN_ << stateFlexLfySIN_
-			  << stateFlexZSIN_);
+			  << stateFlexZSIN_ << stateFlexLatSIN_);
       signalRegistration (controlGainSIN_);
       signalRegistration (sideGainSIN_);
       signalRegistration (d2comSOUT_);
@@ -152,9 +165,12 @@ namespace sot {
 			  << cosineLeftFootXSOUT_ << cosineLeftFootYSOUT_);
       signalRegistration (nbSupportSOUT_);
       signalRegistration (flexPositionSOUT_ << flexPositionLfSOUT_
-			  << flexPositionRfSOUT_ << flexZobsSOUT_);
+			  << flexPositionRfSOUT_ << flexPositionLatSOUT_
+			  << flexZobsSOUT_);
       signalRegistration (flexVelocitySOUT_ << flexVelocityLfSOUT_
-			  << flexVelocityRfSOUT_);
+			  << flexVelocityRfSOUT_ << flexVelocitySOUT_);
+      signalRegistration (stepLengthSOUT_ << flexLatControlSOUT_
+			  << flexLatObsSOUT_);
       signalRegistration (debugSOUT_);
 
       taskSOUT.addDependency (deltaComSIN_);
@@ -190,6 +206,7 @@ namespace sot {
       debug_.setZero ();
       debugSOUT_.setConstant (debug_);
       flexVelocity_.setZero ();
+      flexVelocityLat_.setZero ();
 
       std::string docstring;
       docstring =
@@ -258,6 +275,13 @@ namespace sot {
       flexDeriv_.fill (0.);
       flexZobs_.setZero ();
       flexZobsSOUT_.setConstant (flexZobs_);
+      stepLengthSOUT_.setConstant (0.);
+
+      flexLatControl_.setZero ();
+      flexLatControlSOUT_.setConstant (flexLatControl_);
+      flexLatObs_.setZero ();
+      flexLatObsSOUT_.setConstant (flexLatObs_);
+
       // Single support gains for
       //  - kth = 510,
       //  - zeta = .8
@@ -298,6 +322,7 @@ namespace sot {
       const Vector& flexLfx = stateFlexLfxSIN_.access (time);
       const Vector& flexLfy = stateFlexLfySIN_.access (time);
       const Vector& flexZ = stateFlexZSIN_.access (time);
+      const Vector& flexLat = stateFlexLatSIN_.access (time);
       const MatrixHomogeneous& Mr = rightFootPositionSIN_.access (time);
       const MatrixHomogeneous& Ml = leftFootPositionSIN_.access (time);
       const Vector& fr = forceRightFootSIN_.access (time);
@@ -309,6 +334,7 @@ namespace sot {
       double delta_x = Ml (0, 3) - Mr (0, 3);
       double delta_y = Ml (1, 3) - Mr (1, 3);
       double stepLength = sqrt (delta_x*delta_x+delta_y*delta_y);
+      stepLengthSOUT_.setConstant (stepLength);
 
       u2x_ = delta_x/stepLength;
       u2y_ = delta_y/stepLength;
@@ -347,6 +373,7 @@ namespace sot {
       if (flz < 0) flz = 0;
       double Fz = flz + frz;
       flexZobs_ (1) = Fz - m_ * g_;
+      flexLatObs_ (1) = .5*stepLength*(frz - flz);
       if (Fz == 0) {
 	flexValue_ (0) = 0;
 	flexValue_ (1) = 0;
@@ -415,6 +442,19 @@ namespace sot {
 	  }
 	  flexPosition_ (row, 3) = translation_ (row);
 	}
+	// Lateral flexibility
+	double theta = flexLat (1);
+	uth_ (0) = u1x_ * theta;
+	uth_ (1) = u1y_ * theta;
+	uth_.toMatrix (R_);
+	translation_ = zmp_ - R_ * zmp_;
+	for (std::size_t row = 0; row < 3; ++row) {
+	  for (std::size_t col = 0; col < 3; ++col) {
+	    flexPositionLat_ (row, col) = R_ (row, col);
+	  }
+	  flexPositionLat_ (row, 3) = translation_ (row);
+	}
+
 	flexVelocity_ (0) = zmp_ (2) * flexDeriv_ (0);
 	flexVelocity_ (1) = zmp_ (2) * flexDeriv_ (1);
 	flexVelocity_ (2) = -zmp_ (0)*flexDeriv_ (0)-zmp_ (1)*flexDeriv_ (1);
@@ -440,9 +480,11 @@ namespace sot {
 	flexPositionSOUT_.setConstant (flexPosition_);
 	flexPositionLfSOUT_.setConstant (flexPositionLf_);
 	flexPositionRfSOUT_.setConstant (flexPositionRf_);
+	flexPositionLatSOUT_.setConstant (flexPositionLat_);
 	flexVelocitySOUT_.setConstant (flexVelocity_);
 	flexVelocityLfSOUT_.setConstant (flexVelocityLf_);
 	flexVelocityRfSOUT_.setConstant (flexVelocityRf_);
+	flexVelocityLatSOUT_.setConstant (flexVelocityLat_);
       }
     }
 
@@ -472,6 +514,8 @@ namespace sot {
       // z-component of center of mass deviation in global frame
       flexZobs_ (0) = deltaCom (2);
       flexZobsSOUT_.setConstant (flexZobs_);
+      flexLatObs_ (0) = 0;
+      flexLatObsSOUT_.setConstant (flexLatObs_);
 
       double theta0, dtheta0;
       double theta1, dtheta1, ddxi;

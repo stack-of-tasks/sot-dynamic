@@ -155,6 +155,8 @@ namespace sot {
       SignalPtr <dynamicgraph::Vector, int> stateFlexLfySIN_;
       // vertical flexibility state
       SignalPtr <dynamicgraph::Vector, int> stateFlexZSIN_;
+      // lateral flexibility state
+      SignalPtr <dynamicgraph::Vector, int> stateFlexLatSIN_;
       // Gain of center task of mass when stabilizer is off
       SignalPtr <double, int> controlGainSIN_;
       // Sideways gain in double support
@@ -177,6 +179,8 @@ namespace sot {
       // Position of flexibility to compensate for right foot
       // Identity if right foot in contact
       Signal <MatrixHomogeneous, int> flexPositionRfSOUT_;
+      // Position of lateral flexibility as a matrix homogeneous
+      Signal <MatrixHomogeneous, int> flexPositionLatSOUT_;
       // Veclocity of flexibility as matrix homogeneous
       Signal <Vector, int> flexVelocitySOUT_;
       // Velocity of flexibility to compensate for left foot
@@ -185,8 +189,16 @@ namespace sot {
       // Velocity of flexibility to compensate for right foot
       // Zero if right foot in contact
       Signal <Vector, int> flexVelocityRfSOUT_;
+      // Veclocity of flexibility as matrix homogeneous
+      Signal <Vector, int> flexVelocityLatSOUT_;
       // Observation of vertical linear flexibility
       Signal <Vector, int> flexZobsSOUT_;
+      // Distance between feet in single support
+      Signal <double, int> stepLengthSOUT_;
+      // Control of Kalman filter for lateral  flexibility in double support
+      Signal <Vector, int> flexLatControlSOUT_;
+      // Observation of Kalman filter for lateral flexibility in double support
+      Signal <Vector, int> flexLatObsSOUT_;
       // Position and velocity of center of mass
       Signal <dynamicgraph::Vector, int> debugSOUT_;
 
@@ -227,12 +239,18 @@ namespace sot {
       MatrixHomogeneous flexPosition_;
       MatrixHomogeneous flexPositionLf_;
       MatrixHomogeneous flexPositionRf_;
+      MatrixHomogeneous flexPositionLat_;
       Vector flexVelocity_;
       Vector flexVelocityLf_;
       Vector flexVelocityRf_;
+      Vector flexVelocityLat_;
 
       // Observation of vertical flexibility: (\zeta - \zeta_{ref}, Fz)
       Vector flexZobs_;
+      // Control of lateral flexibility in double support
+      Vector flexLatControl_;
+      // Observation of lateral flexibility in double support
+      Vector flexLatObs_;
 
       double timeBeforeFlyingFootCorrection_;
       unsigned int iterationsSinceLastSupportLf_;

@@ -492,6 +492,222 @@ namespace sot {
       DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (fz, "flexibility_fz");
       DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (hz, "flexibility_hz");
 
+      //
+      // State transition of time discretized system (double support lateral)
+      //
+      //   x    =  f (x , u )
+      //    k+1        k   k
+      //
+      //   with
+      //        ..
+      //   u  = xi,   x  = x (k dt)
+      //    k          k
+      //
+      class f_lat : public Function
+      {
+	SignalPtr <Vector, int> controlSIN_;
+	SignalPtr <double, int> stepLengthSIN_;
+	Signal <Vector, int> newStateSOUT_;
+	Signal <Matrix, int> jacobianSOUT_;
+
+	DYNAMIC_GRAPH_ENTITY_DECL();
+	f_lat (const std::string& name) :
+	  Function (name),
+	  controlSIN_ (0, "flexibility_f_lat(" + name +
+		       ")::input(vector)::control"),
+	  stepLengthSIN_ (0, "flexibility_f_lat(" + name +
+			  ")::input(double)::stepLength"),
+	  newStateSOUT_ ("flexibility_f_lat(" + name +
+			 ")::output(vector)::newState"),
+	  jacobianSOUT_ ("flexibility_f_lat(" + name +
+			 ")::output(vector)::jacobian")
+
+	{
+	  signalRegistration (controlSIN_ << stepLengthSIN_ << newStateSOUT_
+			      << jacobianSOUT_);
+	  newStateSOUT_.setFunction (boost::bind (&f_lat::computeNewState, this,
+						  _1, _2));
+	  newStateSOUT_.addDependency (controlSIN_);
+	  newStateSOUT_.addDependency (stepLengthSIN_);
+
+	  jacobianSOUT_.setFunction (boost::bind (&f_lat::computeJacobian, this,
+						  _1, _2));
+	  jacobianSOUT_.addDependency (controlSIN_);
+	  jacobianSOUT_.addDependency (stepLengthSIN_);
+	}
+
+	Vector& computeNewState (Vector& x, const int& time)
+	{
+	  double m = Stabilizer::m_;
+	  double g = Stabilizer::g_;
+	  double zeta = Stabilizer::zeta_;
+
+	  const Vector& state = stateSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.access (time);
+	  const double& h = stepLengthSIN_.access (time);
+
+	  double xi = state (0);
+	  double th = state (1);
+	  double dxi = state (2);
+	  double dth = state (3);
+	  double kz = state (4);
+	  double kth = .5*h*h*kz;
+
+	  double u = control (0);
+	  double d2 = (xi*xi+zeta*zeta);
+	  x.resize (5);
+
+	  x (0) = xi + dt_ * dxi;
+	  x (1) = th + dt_ * dth;
+	  x (2) = dxi + dt_ * u;
+	  x (3) = dth + dt_* (-kth*th - m*g*(cos (th)*xi - sin (th)*zeta) +
+			      m*(zeta*u -2*dth*xi*dxi))/(m*d2);
+	  x (4) = kz;
+
+	  return x;
+	}
+
+	Matrix& computeJacobian (Matrix& J, const int& t)
+	{
+	  double m = Stabilizer::m_;
+	  double g = Stabilizer::g_;
+	  double zeta = Stabilizer::zeta_;
+
+	  const Vector& state = stateSIN_.accessCopy ();
+	  const Vector& control = controlSIN_.access (t);
+	  const double& h = stepLengthSIN_.access (t);
+
+	  double xi = state (0);
+	  double th = state (1);
+	  double dxi = state (2);
+	  double dth = state (3);
+	  double kz = state (4);
+	  double kth = .5*h*h*kz;
+
+	  double u = control (0);
+
+	  double d2 = (xi*xi+zeta*zeta);
+	  double d4 = d2*d2;
+
+	  J.resize (5, 5);
+	  J.fill (0.);
+	  J (0, 0) = 1.;
+	  J (0, 2) = dt_;
+	  J (1, 1) = 1.;
+	  J (1, 3) = dt_;
+	  J (2, 2) = 1.;
+	  J (3, 0) = dt_*((-g*cos (th) -2*dth*dxi)/d2
+			  +(2*xi*(kth*th + m*g*(cos (th)*xi-sin (th)*zeta)
+				  -m*(zeta*u-2*dth*xi*dxi)))
+			  /(m*d4));
+	  J (3, 1) = dt_*(-kth + m*g*(sin (th)*xi + cos (th)*zeta))/
+	    (m*d2);
+	  J (3, 2) = -2*dt_*dth*xi/d2;
+	  J (3, 3) = 1. - 2.*dt_*xi*dxi/d2;
+	  J (3, 4) = -dt_*th/(m*d2);
+	  J (4, 4) = 1.;
+
+	  return J;
+	}
+	std::string getDocString () const
+	{
+	  return
+	    "State transition for foot flexibility along one local coordinate "
+	    "axis\n"
+	    "\n"
+	    "  Compute expected state at time k from state and control at time"
+	    " k-1.\n"
+	    "  State is defined by center of mass deviation (wrt reference), "
+	    "flexibility\n"
+	    "  angular deviation and derivatives of these two values, along a "
+	    "local\n"
+	    "  axis of one foot.\n"
+	    "  \n"
+	    "  Signal \"stepLength\" contains the distance between both "
+	    "ankles.\n";
+	}
+      };  // class f_lat
+
+      //
+      // Observation function
+      //
+      class h_lat : public Function
+      {
+	SignalPtr <double, int> stepLengthSIN_;
+	SignalTimeDependent <Vector, int> observationSOUT_;
+	SignalTimeDependent <Matrix, int> jacobianSOUT_;
+
+	DYNAMIC_GRAPH_ENTITY_DECL();
+	h_lat (const std::string& name) :
+	  Function (name),
+	  stepLengthSIN_ (0, "flexibility_h_lat(" + name +
+			  ")::input(double)::stepLength"),
+	  observationSOUT_ ("flexibility_h_lat(" + name +
+			    ")::output(vector)::observation"),
+	  jacobianSOUT_ ("flexibility_h_lat(" + name +
+			 ")::output(vector)::jacobian")
+	{
+	  signalRegistration (stepLengthSIN_ << observationSOUT_
+			      << jacobianSOUT_);
+	  observationSOUT_.setFunction
+	    (boost::bind (&h_lat::computeObservation, this, _1, _2));
+	  observationSOUT_.addDependency (stateSIN_);
+	  jacobianSOUT_.setFunction (boost::bind (&h_lat::computeJacobian,
+						  this, _1, _2));
+	  jacobianSOUT_.addDependency (stateSIN_);
+	}
+
+	Vector& computeObservation (Vector& obs, const int& time)
+	{
+	  const Vector& state = stateSIN_.access (time);
+	  const double& h = stepLengthSIN_.access (time);
+
+	  double xi = state (0);
+	  double th = state (1);
+	  double kz = state (4);
+	  double kth = .5*h*h*kz;
+
+	  obs.resize (2);
+	  obs (0) = xi;
+	  obs (1) = kth * th;
+
+	  return obs;
+	}
+	Matrix& computeJacobian (Matrix& J, const int& time)
+	{
+	  const Vector& state = stateSIN_.access (time);
+	  const double& h = stepLengthSIN_.access (time);
+
+	  double th = state (1);
+	  double kz = state (4);
+	  double kth = .5*h*h*kz;
+
+	  J.resize (2, 5);
+	  J.fill (0.);
+	  J (0, 0) = 1.;
+	  J (1, 1) = kth;
+	  J (1, 4) = .5*h*h*th;
+
+	  return J;
+	}
+	std::string getDocString () const
+	{
+	  return
+	    "Observation function for foot flexibility along one local "
+	    "coordinate axis\n"
+	    "\n"
+	    "  Compute expected observation at time k from state at time k.\n"
+	    "  State is defined by center of mass deviation (wrt reference), "
+	    "flexibility\n"
+	    "  angular deviation and derivatives of these two values, along a "
+	    "local\n"
+	    "  axis of one foot.\n"
+	    "  Observation is defined by center of mass deviation and moment "
+	    "at the ankle\n";
+	}
+      }; // class h_lat
+      DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (f_lat, "flexibility_f_lat");
+      DYNAMICGRAPH_FACTORY_ENTITY_PLUGIN (h_lat, "flexibility_h_lat");
     } // namespace flexibility
 
     class VarianceDoubleSupport

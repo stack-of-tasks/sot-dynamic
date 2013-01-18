@@ -18,7 +18,8 @@ from dynamic_graph.sot.core import Substract_of_vector, Multiply_double_vector,\
     Multiply_of_matrixHomo, Selec_of_vector, Stack_of_vector, \
     Inverse_of_matrixrotation, Multiply_matrix_vector, Kalman
 from dynamic_graph.sot.dynamics import Stabilizer, flexibility_f, \
-    flexibility_h, flexibility_fz, flexibility_hz, VarianceDoubleSupport, \
+    flexibility_h, flexibility_fz, flexibility_hz, flexibility_f_lat, \
+    flexibility_h_lat, VarianceDoubleSupport, \
     MatrixHomoToYawOrientation
 from dynamic_graph import plug
 
@@ -49,6 +50,20 @@ Qz = ((2e-6, 0., 0., 0., 0.,),
       (0., 0., 0., 0., 0.,),)
 
 Rz = ((2.5e-5, 0.),(0., 100.,),)
+
+xlat0 = (0.,0.,0.,0.,75000.,)
+Plat0 = ((0.02, 0., 0., 0., 0.,),
+         (0., 0.02, 0., 0., 0.,),
+         (0., 0., 0.03, 0., 0.,),
+         (0., 0., 0., 0.03, 0.,),
+         (0., 0., 0., 0., .0001,))
+
+Qlat = ((2e-6, 0., 0., 0., 0.,),
+        (0., 1e-8, 0., 0., 0.,),
+        (0., 0., 1., 0., 0.,),
+        (0., 0., 0., 1., 0.,),
+        (0., 0., 0., 0., 0.,),)
+Rlat = ((10., 0.),(0., 1.,),)
 
 def createKalmanOneFoot (robot, forceSensor, kalmanState, localDeltaCom,
                          locald2Com, cosineFoot, suffix):
@@ -124,6 +139,28 @@ def createKalmanVertical (robot):
     plug (robot.ekf_z.x_est, robot.stabilizer.stateFlex_z)
     robot.ekf_z.Q.value = Qz
 
+def createKalmanLateral (robot):
+    # Observation of angular deviation along axis orthogonal to the line
+    # joining the foot centers in double support.
+    robot.ekf_lat = Kalman (robot.name + '_EKF_lat')
+    robot.f_lat = flexibility_f_lat (robot.name + '_f_lat')
+    robot.h_lat = flexibility_h_lat (robot.name + '_h_lat')
+    robot.ekf_lat.R.value = Rlat
+    robot.ekf_lat.setInitialState (xlat0)
+    robot.ekf_lat.setInitialVariance (Plat0)
+    robot.f_lat.control.value = (0.,)
+    plug (robot.stabilizer.flexLatObs, robot.ekf_lat.y)
+    plug (robot.f_lat.newState, robot.ekf_lat.x_pred)
+    plug (robot.f_lat.jacobian, robot.ekf_lat.F)
+    plug (robot.f_lat.newState, robot.h_lat.state)
+    plug (robot.h_lat.observation, robot.ekf_lat.y_pred)
+    plug (robot.h_lat.jacobian, robot.ekf_lat.H)
+    plug (robot.ekf_lat.x_est, robot.f_lat.state)
+    plug (robot.ekf_lat.x_est, robot.stabilizer.stateFlex_lat)
+    robot.ekf_lat.Q.value = Qlat
+    plug (robot.stabilizer.stepLength, robot.f_lat.stepLength)
+    plug (robot.stabilizer.stepLength, robot.h_lat.stepLength)
+
 def createKalmanFilterFeet (robot):
     createKalmanOneFoot (robot = robot, forceSensor = robot.device.forceRLEG,
                          kalmanState = robot.stabilizer.stateFlex_rfx,
@@ -170,6 +207,7 @@ def createKalmanFilterFeet (robot):
     robot.f_lfy.control.recompute (0)
 
     createKalmanVertical (robot = robot)
+    createKalmanLateral (robot = robot)
 
 def createStabilizer (robot):
     robot.dynamic.com.recompute(0)
