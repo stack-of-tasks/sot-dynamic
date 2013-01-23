@@ -561,20 +561,7 @@ namespace sot {
 		  gain2_ (3)*dtheta0);
 	lat = u2x_*x + u2y_*y;
 	dlat = u2x_*dcom_ (0) + u2y_*dcom_ (1);
-
-	fz = forceLf (2) + forceRf (2);
-	Zx = (leftFootPosition (0, 3) * forceLf (2) +
-	      rightFootPosition (0, 3) * forceRf (2))/fz;
-	Zy = (leftFootPosition (1, 3) * forceLf (2) +
-	      rightFootPosition (1, 3) * forceRf (2))/fz;
-	fzRef = forceRefLf (2) + forceRefRf (2);
-	Zrefx = (leftFootPosition (0, 3) * forceRefLf (2) +
-		 rightFootPosition (0, 3) * forceRefRf (2))/fzRef;
-	Zrefy = (leftFootPosition (1, 3) * forceRefLf (2) +
-		 rightFootPosition (1, 3) * forceRefRf (2))/fzRef;
-	theta1 = - ((Zx - Zrefx)*u2x_ + (Zy - Zrefy)*u2y_)/kth_;
-	ddlat = - (gain2_ (0)*lat + gain2_ (1)*theta1 + gain2_ (2)*dlat);
-	ddlat = 0;
+	ddlat = -2*gain*dlat - gain*gain*lat;
 
 	d2com_ (0) = ddxi * u1x_ + ddlat*u2x_;
 	d2com_ (1) = ddxi * u1y_ + ddlat*u2y_;
