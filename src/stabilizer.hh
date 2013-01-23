@@ -159,8 +159,6 @@ namespace sot {
       SignalPtr <dynamicgraph::Vector, int> stateFlexLatSIN_;
       // Gain of center task of mass when stabilizer is off
       SignalPtr <double, int> controlGainSIN_;
-      // Sideways gain in double support
-      SignalPtr <double, int> sideGainSIN_;
       // Acceleration of center of mass
       SignalTimeDependent <dynamicgraph::Vector, int> d2comSOUT_;
       // Cosines of angles between line linking ankles (in horizontal plane)

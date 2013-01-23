@@ -94,8 +94,6 @@ namespace sot {
       (0, "Stabilizer("+inName+")::input(vector)::stateFlex_lat"),
       controlGainSIN_
       (NULL, "Stabilizer("+inName+")::input(double)::controlGain"),
-      sideGainSIN_
-      (NULL, "Stabilizer("+inName+")::input(double)::sideGain"),
       d2comSOUT_ ("Stabilizer("+inName+")::output(vector)::d2com"),
       cosineRightFootXSOUT_
       ("Stabilizer("+inName+")::output(double)::cosine_rfx"),
@@ -159,7 +157,6 @@ namespace sot {
 			  << stateFlexLfxSIN_ << stateFlexLfySIN_
 			  << stateFlexZSIN_ << stateFlexLatSIN_);
       signalRegistration (controlGainSIN_);
-      signalRegistration (sideGainSIN_);
       signalRegistration (d2comSOUT_);
       signalRegistration (cosineRightFootXSOUT_ << cosineRightFootYSOUT_
 			  << cosineLeftFootXSOUT_ << cosineLeftFootYSOUT_);
@@ -184,7 +181,6 @@ namespace sot {
       taskSOUT.addDependency (stateFlexLfxSIN_);
       taskSOUT.addDependency (stateFlexLfySIN_);
       taskSOUT.addDependency (controlGainSIN_);
-      taskSOUT.addDependency (sideGainSIN_);
 
       jacobianSOUT.addDependency (jacobianSIN_);
 
@@ -202,7 +198,6 @@ namespace sot {
       dcom_.setZero ();
       deltaCom_.setZero ();
       d2comSOUT_.setConstant (d2com_);
-      sideGainSIN_.setConstant (1.);
       debug_.setZero ();
       debugSOUT_.setConstant (debug_);
       flexVelocity_.setZero ();
