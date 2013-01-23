@@ -53,10 +53,11 @@ class AbstractHumanoidRobot (object):
     Tasks are stored into 'tasks' dictionary.
 
     For portability, some signals are accessible as attributes:
-      - zmpRef: input (vector),
-      - comRef: input (vector).
-      - com:    output (vector)
-      - comdot: input (vector) reference velocity of the center of mass
+      - zmpRef:     input (vector),
+      - comRef:     input (vector).
+      - comdot:     input (vector) reference velocity of the center of mass
+      - postureRef: input (vector) reference posture
+      - com:        output (vector)
 
     """
 
@@ -258,7 +259,7 @@ class AbstractHumanoidRobot (object):
 
     def createPostureFeatureAndTask (self, featureName, taskName, gain = 100):
         featurePosture = FeaturePosture (featureName)
-        featurePosture.setPosture (self.halfSitting)
+        featurePosture.posture.value = self.halfSitting
         plug (self.device.state, featurePosture.state)
         for i in range (6, len (self.halfSitting)):
             featurePosture.selectDof (i, True)
@@ -284,6 +285,7 @@ class AbstractHumanoidRobot (object):
         """
         self.com = self.dynamic.com
         self.comdot = self.stabilizer.comdot
+        self.postureRef = self.features ['posture'].posture
 
     def initializeRobot(self):
         """
