@@ -128,7 +128,7 @@ namespace sot {
       flexLatObsSOUT_
       ("Stabilizer("+inName+")::output(Vector)::flexLatObs"),
       debugSOUT_ ("Stabilizer("+inName+")::output(vector)::debug"),
-      gain1_ (4), gain2_ (4), gainz_ (4),
+      gain1_ (4), gain2_ (4), gainz_ (4), gainLat_ (4),
       prevCom_(3), flexValue_ (3), flexDeriv_ (3),
       dcom_ (3), dt_ (.005), on_ (false),
       forceThreshold_ (.036*m_*g_), angularStiffness_ (425.), d2com_ (3),
@@ -265,6 +265,18 @@ namespace sot {
 				    ("Get gains of vertical flexibility",
 				     "vector")));
 
+      addCommand ("setGainLateral",
+		  makeDirectSetter (*this, &gainLat_,
+				    docDirectSetter
+				    ("Set gains of lateral flexibility",
+				     "vector")));
+
+      addCommand ("getGainLateral",
+		  makeDirectGetter (*this, &gainLat_,
+				    docDirectGetter
+				    ("Get gains of lateral flexibility",
+				     "vector")));
+
       prevCom_.fill (0.);
       flexValue_.fill (0.);
       flexDeriv_.fill (0.);
@@ -282,10 +294,10 @@ namespace sot {
       //  - zeta = .8
       //  - m = 56
       //  - eigen values = 3, 3, 6, 6.
-      gain1_ (0) = 121.89726;
-      gain1_ (1) = -5.4917365714285769;
-      gain1_ (2) = 38.280282352941178;
-      gain1_ (3) = -16.224225882352943;
+      gain1_ (0) = 121.27893435294121;
+      gain1_ (1) = -19.899754625210093;
+      gain1_ (2) = 38.133760000000009;
+      gain1_ (3) = -17.707008000000005;
 
       // Double support gains for
       //  - kth = 2*510,
@@ -306,6 +318,15 @@ namespace sot {
       gainz_ (2) = 10.19;
       gainz_ (3) = -9.81;
 
+      // Lateral gains for
+      //  - kth = 3000 (kz = 160000, h=.19)
+      //  - m = 56
+      //  - eigen values = 8, 8, 8, 8.
+      gainLat_ (0) = 94.721917866666672;
+      gainLat_ (1) = 174.26817999238096;
+      gainLat_ (2) = 29.154645333333335;
+      gainLat_ (3) = 2.2762837333333308;
+
       zmp_.setZero ();
     }
 
@@ -322,6 +343,8 @@ namespace sot {
       const MatrixHomogeneous& Ml = leftFootPositionSIN_.access (time);
       const Vector& fr = forceRightFootSIN_.access (time);
       const Vector& fl = forceLeftFootSIN_.access (time);
+      const Vector& forceRefLf = forceLeftFootRefSIN_.access (time);
+      const Vector& forceRefRf = forceRightFootRefSIN_.access (time);
       double deltaComRfx, deltaComRfy, deltaComLfx, deltaComLfy;
       double dcomRfx, dcomRfy, dcomLfx, dcomLfy;
 
@@ -364,6 +387,14 @@ namespace sot {
 	  iterationsSinceLastSupportLf_++;
 	}
       }
+      if (nbSupport_ == 2) {
+	// Compute reference moment from reference forces
+	double kthLat = .5*stepLength*stepLength*flexLat (4);
+	double Mu1Ref;
+	Mu1Ref = .5*(forceRefRf (2) - forceRefLf (2))*stepLength;
+	theta1Ref_ = Mu1Ref/kthLat;
+      }
+
       if (frz < 0) frz = 0;
       if (flz < 0) flz = 0;
       double Fz = flz + frz;
@@ -455,7 +486,7 @@ namespace sot {
 	flexVelocity_ (2) = -zmp_ (0)*flexDeriv_ (0)-zmp_ (1)*flexDeriv_ (1);
 	flexVelocity_ (3) = flexDeriv_ (1);
 	flexVelocity_ (4) = -flexDeriv_ (0);
-	
+
 	if (iterationsSinceLastSupportLf_ * dt_ >
 	    timeBeforeFlyingFootCorrection_) {
 	  flexPositionLf_ = flexPosition_;
@@ -497,8 +528,7 @@ namespace sot {
       const double& gain = controlGainSIN_.access (time);
       const Vector& forceLf = forceLeftFootSIN_.access (time);
       const Vector& forceRf = forceRightFootSIN_.access (time);
-      const Vector& forceRefLf = forceLeftFootRefSIN_.access (time);
-      const Vector& forceRefRf = forceRightFootRefSIN_.access (time);
+      const double& stepLength = stepLengthSOUT_.accessCopy ();
 
       computeFlexibility (time);
 
@@ -559,9 +589,13 @@ namespace sot {
 	dxi = u1x_*dcom_ (0) + u1y_*dcom_ (1);
 	ddxi = - (gain2_ (0)*xi + gain2_ (1)*theta0 + gain2_ (2)*dxi +
 		  gain2_ (3)*dtheta0);
+
+	theta1 = u2x_ * flexValue_ (0) + u2y_ * flexValue_ (1);
+	dtheta1 = u2x_ * flexDeriv_ (0) + u2y_ * flexDeriv_ (1);
 	lat = u2x_*x + u2y_*y;
 	dlat = u2x_*dcom_ (0) + u2y_*dcom_ (1);
-	ddlat = -2*gain*dlat - gain*gain*lat;
+	ddlat = - (gainLat_ (0)*lat + gainLat_ (1)*(theta1-theta1Ref_)
+		   + gainLat_ (2)*dlat + gainLat_ (3)*dtheta1);
 
 	d2com_ (0) = ddxi * u1x_ + ddlat*u2x_;
 	d2com_ (1) = ddxi * u1y_ + ddlat*u2y_;

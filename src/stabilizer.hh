@@ -206,6 +206,8 @@ namespace sot {
       Vector gain2_;
       /// Gains z correction
       Vector gainz_;
+      /// Gains lateral correction
+      Vector gainLat_;
       /// Store center of mass for finite-difference evaluation of velocity
       Vector prevCom_;
       /// Angle of the flexibility
@@ -262,7 +264,8 @@ namespace sot {
       Vector zmp_;
       double kth_;
       double u2x_, u2y_, u1x_, u1y_;
-
+      // Lateral deflection in double support
+      double theta1Ref_;
       Vector debug_;
     }; // class Stabilizer
   } // namespace dynamic
