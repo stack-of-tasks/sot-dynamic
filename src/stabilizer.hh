@@ -266,6 +266,8 @@ namespace sot {
       double u2x_, u2y_, u1x_, u1y_;
       // Lateral deflection in double support
       double theta1Ref_;
+      double theta1RefPrev_;
+      double dtheta1Ref_;
       Vector debug_;
     }; // class Stabilizer
   } // namespace dynamic

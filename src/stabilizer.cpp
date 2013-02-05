@@ -144,7 +144,9 @@ namespace sot {
       iterationsSinceLastSupportLf_ (0), iterationsSinceLastSupportRf_ (0),
       supportCandidateLf_ (0), supportCandidateRf_ (0),
       uth_ (),
-      R_ (), translation_ (3), zmp_ (3), debug_ (4)
+      R_ (), translation_ (3), zmp_ (3),
+      theta1Ref_ (0), theta1RefPrev_ (0), dtheta1Ref_ (0),
+      debug_ (4)
     {
       // Register signals into the entity.
       signalRegistration (deltaComSIN_);
@@ -387,12 +389,14 @@ namespace sot {
 	  iterationsSinceLastSupportLf_++;
 	}
       }
+      theta1RefPrev_ = theta1Ref_;
       if (nbSupport_ == 2) {
 	// Compute reference moment from reference forces
 	double kthLat = .5*stepLength*stepLength*flexLat (4);
 	double Mu1Ref;
 	Mu1Ref = .5*(forceRefRf (2) - forceRefLf (2))*stepLength;
 	theta1Ref_ = Mu1Ref/kthLat;
+	dtheta1Ref_ = (theta1Ref_ - theta1RefPrev_)/dt_;
       }
 
       if (frz < 0) frz = 0;
@@ -595,7 +599,7 @@ namespace sot {
 	lat = u2x_*x + u2y_*y;
 	dlat = u2x_*dcom_ (0) + u2y_*dcom_ (1);
 	ddlat = - (gainLat_ (0)*lat + gainLat_ (1)*(theta1-theta1Ref_)
-		   + gainLat_ (2)*dlat + gainLat_ (3)*dtheta1);
+		   + gainLat_ (2)*dlat + gainLat_ (3)*(dtheta1 - dtheta1Ref_));
 
 	d2com_ (0) = ddxi * u1x_ + ddlat*u2x_;
 	d2com_ (1) = ddxi * u1y_ + ddlat*u2y_;
