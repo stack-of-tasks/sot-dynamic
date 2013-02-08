@@ -128,7 +128,9 @@ namespace sot {
       Matrix& computeJacobianCom(Matrix& jacobian, const int& time);
 
       /// Position of center of mass
-      SignalPtr < dynamicgraph::Vector, int> deltaComSIN_;
+      SignalPtr < dynamicgraph::Vector, int> comSIN_;
+      /// Reference position of center of mass
+      SignalPtr < dynamicgraph::Vector, int> comRefSIN_;
       /// Position of center of mass
       SignalPtr < dynamicgraph::Matrix, int> jacobianSIN_;
       /// Reference velocity of the center of mass

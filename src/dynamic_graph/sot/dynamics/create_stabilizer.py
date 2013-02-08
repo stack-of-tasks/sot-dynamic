@@ -16,7 +16,7 @@
 
 from dynamic_graph.sot.core import Substract_of_vector, Multiply_double_vector,\
     Multiply_of_matrixHomo, Selec_of_vector, Stack_of_vector, \
-    Inverse_of_matrixrotation, Multiply_matrix_vector, Kalman
+    Inverse_of_matrixrotation, Multiply_matrix_vector, Kalman, Add_of_vector
 from dynamic_graph.sot.dynamics import Stabilizer, flexibility_f, \
     flexibility_h, flexibility_fz, flexibility_hz, flexibility_f_lat, \
     flexibility_h_lat, VarianceDoubleSupport, \
@@ -216,10 +216,23 @@ def createStabilizer (robot):
     robot.stabilizer.comdot.value = (0.,0.,0.,)
     plug (robot.dynamic.Jcom, robot.stabilizer.Jcom)
     robot.deltaCom = Substract_of_vector (robot.name + '_deltaCom')
-    robot.comRef = robot.deltaCom.sin2
+    robot.yawOrientation_waist = \
+        MatrixHomoToYawOrientation (robot.name + '_yawOrientation_waist')
+    robot.localComOffset = \
+        Multiply_matrix_vector (robot.name + '_localComOffset')
+    robot.comRefEntity = Add_of_vector (robot.name + '_comRef')
+    robot.comRef = robot.comRefEntity.sin1
     robot.comRef.value = robot.dynamic.com.value
+    plug (robot.comRefEntity.sout, robot.deltaCom.sin2)
+    plug (robot.comRefEntity.sout, robot.stabilizer.comRef)
+    plug (robot.localComOffset.sout, robot.comRefEntity.sin2)
+    plug (robot.features ['waist'].position,
+          robot.yawOrientation_waist.position)
+    plug (robot.yawOrientation_waist.yawOrientation, robot.localComOffset.sin1)
+    robot.localComOffset.sin2.value = (0.,0.,0.)
+    robot.comOffset = robot.localComOffset.sin2
     plug (robot.dynamic.com, robot.deltaCom.sin1)
-    plug (robot.deltaCom.sout, robot.stabilizer.deltaCom)
+    plug (robot.dynamic.com, robot.stabilizer.com)
     plug (robot.device.forceRLEG, robot.stabilizer.force_rf)
     plug (robot.device.forceLLEG, robot.stabilizer.force_lf)
     robot.stabilizer.forceRef_lf.value = (0.,0.,283.2,0.,0.,0.,)

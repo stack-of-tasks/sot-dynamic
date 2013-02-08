@@ -55,7 +55,7 @@ namespace sot {
     ///
     /// This task takes as input four signals
     /// \li comSIN, the position of the center of mass (COM)
-    /// \li comDesSIN, the the desired position of the center of mass,
+    /// \li comRefSIN, the the desired position of the center of mass,
     /// \li zmpSIN, the position of the center of pressure (ZMP),
     /// \li zmpDesSIN, the desired position of the center of pressure,
     /// \li jacobianSIN, the jacobian of the center of mass,
@@ -65,7 +65,8 @@ namespace sot {
     /// \li jacobianSOUT, the jacobian of the center of mass
     Stabilizer::Stabilizer(const std::string& inName) :
       TaskAbstract(inName),
-      deltaComSIN_ (NULL, "Stabilizer("+inName+")::input(vector)::deltaCom"),
+      comSIN_ (NULL, "Stabilizer("+inName+")::input(vector)::com"),
+      comRefSIN_ (NULL, "Stabilizer("+inName+")::input(vector)::comRef"),
       jacobianSIN_ (NULL, "Stabilizer("+inName+")::input(matrix)::Jcom"),
       comdotSIN_ (NULL, "Stabilizer("+inName+")::input(vector)::comdot"),
       leftFootPositionSIN_
@@ -149,7 +150,8 @@ namespace sot {
       debug_ (4)
     {
       // Register signals into the entity.
-      signalRegistration (deltaComSIN_);
+      signalRegistration (comSIN_);
+      signalRegistration (comRefSIN_);
       signalRegistration (jacobianSIN_);
       signalRegistration (comdotSIN_);
       signalRegistration (leftFootPositionSIN_ << rightFootPositionSIN_
@@ -172,7 +174,8 @@ namespace sot {
 			  << flexLatObsSOUT_);
       signalRegistration (debugSOUT_);
 
-      taskSOUT.addDependency (deltaComSIN_);
+      taskSOUT.addDependency (comSIN_);
+      taskSOUT.addDependency (comRefSIN_);
       taskSOUT.addDependency (comdotSIN_);
       taskSOUT.addDependency (leftFootPositionSIN_);
       taskSOUT.addDependency (rightFootPositionSIN_);
@@ -390,6 +393,7 @@ namespace sot {
 	}
       }
       theta1RefPrev_ = theta1Ref_;
+      dtheta1Ref_ = 0.;
       if (nbSupport_ == 2) {
 	// Compute reference moment from reference forces
 	double kthLat = .5*stepLength*stepLength*flexLat (4);
@@ -523,7 +527,7 @@ namespace sot {
     Stabilizer::computeControlFeedback(VectorMultiBound& comdot,
 				       const int& time)
     {
-      const Vector& deltaCom = deltaComSIN_ (time);
+      const Vector deltaCom = comSIN_ (time) - comRefSIN_ (time);
       const Vector& comdotRef = comdotSIN_ (time);
       const MatrixHomogeneous& leftFootPosition =
 	leftFootPositionSIN_.access (time);
@@ -601,6 +605,11 @@ namespace sot {
 	ddlat = - (gainLat_ (0)*lat + gainLat_ (1)*(theta1-theta1Ref_)
 		   + gainLat_ (2)*dlat + gainLat_ (3)*(dtheta1 - dtheta1Ref_));
 
+	debug_ (0) = lat;
+	debug_ (1) = theta1-theta1Ref_;
+	debug_ (2) = dlat;
+	debug_ (3) = dtheta1 - dtheta1Ref_;
+
 	d2com_ (0) = ddxi * u1x_ + ddlat*u2x_;
 	d2com_ (1) = ddxi * u1y_ + ddlat*u2y_;
 	dcom_ (0) += dt_ * d2com_ (0);
@@ -619,11 +628,6 @@ namespace sot {
       comdot [0].setSingleBound (comdotRef (0) + dcom_ (0));
       comdot [1].setSingleBound (comdotRef (1) + dcom_ (1));
       comdot [2].setSingleBound (comdotRef (2) + dcom_ (2));
-
-      debug_ (0) = deltaCom (0);
-      debug_ (1) = deltaCom (1);
-      debug_ (2) = dcom_ (0);
-      debug_ (3) = dcom_ (1);
 
       d2comSOUT_.setConstant (d2com_);
       d2comSOUT_.setTime (time);
