@@ -45,7 +45,7 @@ namespace sot {
     using dynamicgraph::sot::MatrixRotation;
     using dynamicgraph::sot::VectorUTheta;
 
-    double Stabilizer::m_ = 56.;
+    double Stabilizer::m_ = 59.8;
     double Stabilizer::g_ = 9.81;
     double Stabilizer::zeta_ = .80;
 
