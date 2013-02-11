@@ -350,6 +350,7 @@ namespace sot {
       const Vector& fl = forceLeftFootSIN_.access (time);
       const Vector& forceRefLf = forceLeftFootRefSIN_.access (time);
       const Vector& forceRefRf = forceRightFootRefSIN_.access (time);
+      const Vector& com = comSIN_ (time);
       double deltaComRfx, deltaComRfy, deltaComLfx, deltaComLfy;
       double dcomRfx, dcomRfy, dcomLfx, dcomLfy;
 
@@ -407,7 +408,13 @@ namespace sot {
       if (flz < 0) flz = 0;
       double Fz = flz + frz;
       flexZobs_ (1) = Fz - m_ * g_;
-      flexLatObs_ (1) = .5*stepLength*(frz - flz);
+      flexLatObs_ (0) = u2x_* (com (0) - .5 * (Mr (0, 3) + Ml (0, 3))) +
+	u2y_ * ((com (1) - .5 * (Mr (1, 3) + Ml (1, 3))));
+      flexLatObs_ (1) = .5*stepLength*(frz - flz)
+	- (u1x_ * (Ml(0,0)*fl(3)+Ml(0,1)*fl(4)+Ml(0,2)*fl(5)) +
+	   u1y_ * (Ml(1,0)*fl(3)+Ml(1,1)*fl(4)+Ml(1,2)*fl(5)))
+	- (u1x_ * (Mr(0,0)*fr(3)+Mr(0,1)*fr(4)+Mr(0,2)*fr(5)) +
+	   u1y_ * (Mr(1,0)*fr(3)+Mr(1,1)*fr(4)+Mr(1,2)*fr(5)));
       if (Fz == 0) {
 	flexValue_ (0) = 0;
 	flexValue_ (1) = 0;
@@ -566,6 +573,7 @@ namespace sot {
       cosineRightFootY_ = rightFootPosition (0, 1)*u1x_ +
 	rightFootPosition (1, 1)*u1y_;;
 
+      flexLatControl_ (0) = 0.;
       switch (nbSupport_) {
       case 0:
 	dcom_ (0) = -gain * x;
@@ -604,7 +612,7 @@ namespace sot {
 	dlat = u2x_*dcom_ (0) + u2y_*dcom_ (1);
 	ddlat = - (gainLat_ (0)*lat + gainLat_ (1)*(theta1-theta1Ref_)
 		   + gainLat_ (2)*dlat + gainLat_ (3)*(dtheta1 - dtheta1Ref_));
-
+	flexLatControl_ (0) = ddlat;
 	debug_ (0) = lat;
 	debug_ (1) = theta1-theta1Ref_;
 	debug_ (2) = dlat;
@@ -644,6 +652,8 @@ namespace sot {
       nbSupportSOUT_.setTime (time);
       debugSOUT_.setConstant (debug_);
       debugSOUT_.setTime (time);
+      flexLatControlSOUT_.setConstant (flexLatControl_);
+      flexLatControlSOUT_.setTime (time);
 
       return comdot;
     }
