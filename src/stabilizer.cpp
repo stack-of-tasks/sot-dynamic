@@ -420,6 +420,7 @@ namespace sot {
 	flexValue_ (1) = 0;
 	flexDeriv_ (0) = 0;
 	flexDeriv_ (1) = 0;
+	deltaCom_ = comSIN_ (time) - comRefSIN_ (time);
 	return;
       }
       // Extract yaw from right foot position
