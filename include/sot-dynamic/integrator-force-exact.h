@@ -25,10 +25,6 @@
 /* --- INCLUDE --------------------------------------------------------- */
 /* --------------------------------------------------------------------- */
 
-/* Matrix */
-#include <jrl/mal/boost.hh>
-namespace ml = maal::boost;
-
 /* SOT */
 #include <dynamic-graph/entity.h>
 #include <dynamic-graph/signal-ptr.h>
@@ -80,7 +76,7 @@ class SOTINTEGRATORFORCEEXACT_EXPORT IntegratorForceExact
 
 
  public: /* --- FUNCTIONS --- */
-  ml::Vector& computeVelocityExact( ml::Vector& res,
+  dg::Vector& computeVelocityExact( dg::Vector& res,
 				    const int& time );
   
 /*  public: /\* --- PARAMS --- *\/ */

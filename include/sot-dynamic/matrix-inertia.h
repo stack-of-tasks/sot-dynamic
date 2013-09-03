@@ -23,9 +23,6 @@
 
 #include <ostream>
 
-#include "jrl/mal/boost.hh"
-#include "jrl/mal/matrixabstractlayer.hh"
-
 #include <sot/core/matrix-twist.hh>
 #include <sot/core/matrix-force.hh>
 #include <sot/core/matrix-rotation.hh>
@@ -80,7 +77,7 @@ public:
   void update( void );
   void computeInertiaMatrix();
   void getInertiaMatrix(double* A);
-  const maal::boost::Matrix& getInertiaMatrix( void );
+  const dg::Matrix& getInertiaMatrix( void );
   size_t getDoF() { return joints_.size(); }
 
 private:
@@ -90,11 +87,11 @@ private:
   std::vector<CjrlJoint*>                              joints_;
   std::vector<int>                                     parentIndex_;
  
-  std::vector< ml::Matrix >  Ic;
-  std::vector< ml::Vector >      phi;
+  std::vector< dg::Matrix >  Ic;
+  std::vector< dg::Vector >      phi;
   std::vector< MatrixTwist >  iVpi;
   std::vector< MatrixForce >  iVpiT;
-  ml::Matrix inertia_;
+  dg::Matrix inertia_;
 
 
 };

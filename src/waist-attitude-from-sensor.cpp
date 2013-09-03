@@ -71,10 +71,10 @@ computeAttitudeWaist( VectorRollPitchYaw & res,
   const MatrixRotation & worldRchest = attitudeSensorSIN( time );
 
   MatrixRotation waistRchest; waistMchest.extract(waistRchest);
-  MatrixRotation chestRwaist; waistRchest.transpose( chestRwaist );
+  MatrixRotation chestRwaist; chestRwaist = waistRchest.transpose();
 
   MatrixRotation worldrchest;
-  worldRchest.multiply( chestRwaist,worldrchest);
+  worldrchest = worldRchest * chestRwaist;
   res.fromMatrix(worldrchest);
   sotDEBUGOUT(15);
   return res;
@@ -161,8 +161,8 @@ WaistPoseFromSensorAndContact::
 /* --- SIGNALS -------------------------------------------------------------- */
 /* --- SIGNALS -------------------------------------------------------------- */
 /* --- SIGNALS -------------------------------------------------------------- */
-ml::Vector& WaistPoseFromSensorAndContact::
-computePositionWaist( ml::Vector& res,
+Vector& WaistPoseFromSensorAndContact::
+computePositionWaist( Vector& res,
 		      const int& time )
 {
   sotDEBUGIN(15);

@@ -25,10 +25,6 @@
 /* --- INCLUDE --------------------------------------------------------- */
 /* --------------------------------------------------------------------- */
 
-/* Matrix */
-#include <jrl/mal/boost.hh>
-namespace ml = maal::boost;
-
 /* SOT */
 #include <dynamic-graph/entity.h>
 #include <dynamic-graph/signal-ptr.h>
@@ -80,7 +76,7 @@ class SOTINTEGRATORFORCERK4_EXPORT IntegratorForceRK4
 
 
  public: /* --- FUNCTIONS --- */
-  ml::Vector& computeDerivativeRK4( ml::Vector& res,
+  dg::Vector& computeDerivativeRK4( dg::Vector& res,
 				    const int& time );
   
 /*  public: /\* --- PARAMS --- *\/ */

@@ -25,10 +25,6 @@
 /* --- INCLUDE --------------------------------------------------------- */
 /* --------------------------------------------------------------------- */
 
-/* Matrix */
-#include <jrl/mal/boost.hh>
-namespace ml = maal::boost;
-
 /* SOT */
 #include <dynamic-graph/entity.h>
 #include <dynamic-graph/signal-ptr.h>
@@ -73,53 +69,53 @@ namespace dynamicgraph { namespace sot {
       ForceCompensation( void );
       static MatrixForce& computeHandXworld( 
 					    const MatrixRotation & worldRhand,
-					    const ml::Vector & transSensorCom,
+					    const dg::Vector & transSensorCom,
 					    MatrixForce& res );
 
   
       static MatrixForce& computeHandVsensor( const MatrixRotation & sensorRhand,
 					      MatrixForce& res );
       static MatrixForce& computeSensorXhand( const MatrixRotation & sensorRhand,
-					      const ml::Vector & transSensorCom,
+					      const dg::Vector & transSensorCom,
 					      MatrixForce& res );
-      /*   static ml::Matrix& computeInertiaSensor( const ml::Matrix& inertiaJoint, */
+      /*   static dg::Matrix& computeInertiaSensor( const dg::Matrix& inertiaJoint, */
       /* 					   const MatrixForce& sensorXhand, */
-      /* 					   ml::Matrix& res ); */
+      /* 					   dg::Matrix& res ); */
 
-      static ml::Vector& computeTorsorCompensated( const ml::Vector& torqueInput,
-						   const ml::Vector& torquePrecompensation,
-						   const ml::Vector& gravity,
+      static dg::Vector& computeTorsorCompensated( const dg::Vector& torqueInput,
+						   const dg::Vector& torquePrecompensation,
+						   const dg::Vector& gravity,
 						   const MatrixForce& handXworld,
 						   const MatrixForce& handVsensor,
-						   const ml::Matrix& gainSensor,
-						   const ml::Vector& momentum,
-						   ml::Vector& res );
+						   const dg::Matrix& gainSensor,
+						   const dg::Vector& momentum,
+						   dg::Vector& res );
 
-      static ml::Vector& crossProduct_V_F( const ml::Vector& velocity,
-					   const ml::Vector& force,
-					   ml::Vector& res );
-      static ml::Vector& computeMomentum( const ml::Vector& velocity,
-					  const ml::Vector& acceleration,
+      static dg::Vector& crossProduct_V_F( const dg::Vector& velocity,
+					   const dg::Vector& force,
+					   dg::Vector& res );
+      static dg::Vector& computeMomentum( const dg::Vector& velocity,
+					  const dg::Vector& acceleration,
 					  const MatrixForce& sensorXhand,
-					  const ml::Matrix& inertiaJoint,
-					  ml::Vector& res );
+					  const dg::Matrix& inertiaJoint,
+					  dg::Vector& res );
 
-      static ml::Vector& computeDeadZone( const ml::Vector& torqueInput,
-					  const ml::Vector& deadZoneLimit,
-					  ml::Vector& res );
+      static dg::Vector& computeDeadZone( const dg::Vector& torqueInput,
+					  const dg::Vector& deadZoneLimit,
+					  dg::Vector& res );
   
     public: // CALIBRATION
 
-      std::list<ml::Vector> torsorList;
+      std::list<dg::Vector> torsorList;
       std::list<MatrixRotation> rotationList;
 
       void clearCalibration( void );
-      void addCalibrationValue( const ml::Vector& torsor,
+      void addCalibrationValue( const dg::Vector& torsor,
 				const MatrixRotation & worldRhand );
   
-      ml::Vector calibrateTransSensorCom( const ml::Vector& gravity,
+      dg::Vector calibrateTransSensorCom( const dg::Vector& gravity,
 					  const MatrixRotation& handRsensor );
-      ml::Vector calibrateGravity( const MatrixRotation& handRsensor,
+      dg::Vector calibrateGravity( const MatrixRotation& handRsensor,
 				   bool precompensationCalibration = false,
 				   const MatrixRotation& hand0Rsensor = I3 );
 
@@ -148,35 +144,35 @@ namespace dynamicgraph { namespace sot {
     public: /* --- SIGNAL --- */
 
       /* --- INPUTS --- */
-      dg::SignalPtr<ml::Vector,int> torsorSIN; 
+      dg::SignalPtr<dg::Vector,int> torsorSIN; 
       dg::SignalPtr<MatrixRotation,int> worldRhandSIN; 
 
       /* --- CONSTANTS --- */
       dg::SignalPtr<MatrixRotation,int> handRsensorSIN; 
-      dg::SignalPtr<ml::Vector,int> translationSensorComSIN; 
-      dg::SignalPtr<ml::Vector,int> gravitySIN; 
-      dg::SignalPtr<ml::Vector,int> precompensationSIN; 
-      dg::SignalPtr<ml::Matrix,int> gainSensorSIN; 
-      dg::SignalPtr<ml::Vector,int> deadZoneLimitSIN; 
-      dg::SignalPtr<ml::Vector,int> transSensorJointSIN; 
-      dg::SignalPtr<ml::Matrix,int> inertiaJointSIN; 
+      dg::SignalPtr<dg::Vector,int> translationSensorComSIN; 
+      dg::SignalPtr<dg::Vector,int> gravitySIN; 
+      dg::SignalPtr<dg::Vector,int> precompensationSIN; 
+      dg::SignalPtr<dg::Matrix,int> gainSensorSIN; 
+      dg::SignalPtr<dg::Vector,int> deadZoneLimitSIN; 
+      dg::SignalPtr<dg::Vector,int> transSensorJointSIN; 
+      dg::SignalPtr<dg::Matrix,int> inertiaJointSIN; 
 
-      dg::SignalPtr<ml::Vector,int> velocitySIN; 
-      dg::SignalPtr<ml::Vector,int> accelerationSIN; 
+      dg::SignalPtr<dg::Vector,int> velocitySIN; 
+      dg::SignalPtr<dg::Vector,int> accelerationSIN; 
 
       /* --- INTERMEDIATE OUTPUTS --- */
       dg::SignalTimeDependent<MatrixForce,int> handXworldSOUT; 
       dg::SignalTimeDependent<MatrixForce,int> handVsensorSOUT; 
-      dg::SignalPtr<ml::Vector,int> torsorDeadZoneSIN; 
+      dg::SignalPtr<dg::Vector,int> torsorDeadZoneSIN; 
 
       dg::SignalTimeDependent<MatrixForce,int> sensorXhandSOUT;
-      //dg::SignalTimeDependent<ml::Matrix,int> inertiaSensorSOUT;
-      dg::SignalTimeDependent<ml::Vector,int> momentumSOUT; 
-      dg::SignalPtr<ml::Vector,int> momentumSIN; 
+      //dg::SignalTimeDependent<dg::Matrix,int> inertiaSensorSOUT;
+      dg::SignalTimeDependent<dg::Vector,int> momentumSOUT; 
+      dg::SignalPtr<dg::Vector,int> momentumSIN; 
 
       /* --- OUTPUTS --- */
-      dg::SignalTimeDependent<ml::Vector,int> torsorCompensatedSOUT; 
-      dg::SignalTimeDependent<ml::Vector,int> torsorDeadZoneSOUT;
+      dg::SignalTimeDependent<dg::Vector,int> torsorCompensatedSOUT; 
+      dg::SignalTimeDependent<dg::Vector,int> torsorDeadZoneSOUT;
 
       typedef int sotDummyType;
       dg::SignalTimeDependent<sotDummyType,int> calibrationTrigerSOUT; 
