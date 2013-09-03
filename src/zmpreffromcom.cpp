@@ -65,18 +65,18 @@ ZmprefFromCom::
 /* --- SIGNALS -------------------------------------------------------------- */
 /* --- SIGNALS -------------------------------------------------------------- */
 /* --- SIGNALS -------------------------------------------------------------- */
-ml::Vector& ZmprefFromCom::
-computeZmpref( ml::Vector& res,
+Vector& ZmprefFromCom::
+computeZmpref( Vector& res,
 	       const int& time )
 {
   sotDEBUGIN(15);
   
-  const ml::Vector& com = comPositionSIN( time );
-  const ml::Vector& dcom = dcomSIN( time );
+  const Vector& com = comPositionSIN( time );
+  const Vector& dcom = dcomSIN( time );
   const MatrixHomogeneous& oTw = waistPositionSIN( time );
 
   MatrixHomogeneous wTo = oTw.inverse();
-  ml::Vector nextComRef = dcom;  nextComRef*= dt;nextComRef+=com;
+  Vector nextComRef = dcom;  nextComRef*= dt;nextComRef+=com;
   
   
   nextComRef(2) = -footHeight; // projection on the ground.

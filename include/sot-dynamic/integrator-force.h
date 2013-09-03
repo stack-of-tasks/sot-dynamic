@@ -25,10 +25,6 @@
 /* --- INCLUDE --------------------------------------------------------- */
 /* --------------------------------------------------------------------- */
 
-/* Matrix */
-#include <jrl/mal/boost.hh>
-namespace ml = maal::boost;
-
 /* SOT */
 #include <dynamic-graph/entity.h>
 #include <dynamic-graph/signal-ptr.h>
@@ -81,26 +77,26 @@ class SOTINTEGRATORFORCE_EXPORT IntegratorForce
 
  public: /* --- SIGNAL --- */
 
-  dg::SignalPtr<ml::Vector,int> forceSIN; 
-  dg::SignalPtr<ml::Matrix,int> massInverseSIN; 
-  dg::SignalPtr<ml::Matrix,int> frictionSIN; 
+  dg::SignalPtr<dg::Vector,int> forceSIN; 
+  dg::SignalPtr<dg::Matrix,int> massInverseSIN; 
+  dg::SignalPtr<dg::Matrix,int> frictionSIN; 
 
   /* Memory of the previous iteration. The sig is fed by the previous
    * computations. */
-  dg::SignalPtr<ml::Vector,int> velocityPrecSIN; 
-  dg::SignalTimeDependent<ml::Vector,int> velocityDerivativeSOUT; 
-  dg::SignalTimeDependent<ml::Vector,int> velocitySOUT; 
+  dg::SignalPtr<dg::Vector,int> velocityPrecSIN; 
+  dg::SignalTimeDependent<dg::Vector,int> velocityDerivativeSOUT; 
+  dg::SignalTimeDependent<dg::Vector,int> velocitySOUT; 
 
-  dg::SignalPtr<ml::Matrix,int> massSIN; 
-  dg::SignalTimeDependent<ml::Matrix,int> massInverseSOUT; 
+  dg::SignalPtr<dg::Matrix,int> massSIN; 
+  dg::SignalTimeDependent<dg::Matrix,int> massInverseSOUT; 
 
  public: /* --- FUNCTIONS --- */
-  ml::Vector& computeDerivative( ml::Vector& res,
+  dg::Vector& computeDerivative( dg::Vector& res,
 				  const int& time );
-  ml::Vector& computeIntegral( ml::Vector& res,
+  dg::Vector& computeIntegral( dg::Vector& res,
 			       const int& time );
 
-  ml::Matrix& computeMassInverse( ml::Matrix& res,
+  dg::Matrix& computeMassInverse( dg::Matrix& res,
 				  const int& time );
 
   

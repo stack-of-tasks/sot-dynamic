@@ -39,8 +39,8 @@
 /* --------------------------------------------------------------------- */
 
 /* Matrix */
-#include <jrl/mal/boost.hh>
-namespace ml = maal::boost;
+//#include <jrl/mal/boost.hh>
+//namespace ml = maal::boost;
 
 /* SOT */
 #include <dynamic-graph/entity.h>
@@ -79,21 +79,21 @@ class SOTANGLEESTIMATOR_EXPORT AngleEstimator
   dg::SignalPtr<MatrixHomogeneous,int> sensorEmbeddedPositionSIN; // waistRchest
   dg::SignalPtr<MatrixHomogeneous,int> contactWorldPositionSIN; // estimate(worldRf)
   dg::SignalPtr<MatrixHomogeneous,int> contactEmbeddedPositionSIN; // waistRleg
-  dg::SignalTimeDependent<ml::Vector,int> anglesSOUT;  // [ flex1 flex2 yaw_drift ]
+  dg::SignalTimeDependent<dg::Vector,int> anglesSOUT;  // [ flex1 flex2 yaw_drift ]
   dg::SignalTimeDependent<MatrixRotation,int> flexibilitySOUT;  // footRleg
   dg::SignalTimeDependent<MatrixRotation,int> driftSOUT;  // Ryaw = worldRc est(wRc)^-1
   dg::SignalTimeDependent<MatrixRotation,int> sensorWorldRotationSOUT;  // worldRc
   dg::SignalTimeDependent<MatrixRotation,int> waistWorldRotationSOUT;  // worldRwaist
   dg::SignalTimeDependent<MatrixHomogeneous,int> waistWorldPositionSOUT; // worldMwaist
-  dg::SignalTimeDependent<ml::Vector,int> waistWorldPoseRPYSOUT; // worldMwaist
+  dg::SignalTimeDependent<dg::Vector,int> waistWorldPoseRPYSOUT; // worldMwaist
 
-  dg::SignalPtr<ml::Matrix,int> jacobianSIN;
-  dg::SignalPtr<ml::Vector,int> qdotSIN;
-  dg::SignalTimeDependent<ml::Vector,int> xff_dotSOUT;
-  dg::SignalTimeDependent<ml::Vector,int> qdotSOUT;
+  dg::SignalPtr<dg::Matrix,int> jacobianSIN;
+  dg::SignalPtr<dg::Vector,int> qdotSIN;
+  dg::SignalTimeDependent<dg::Vector,int> xff_dotSOUT;
+  dg::SignalTimeDependent<dg::Vector,int> qdotSOUT;
 
  public: /* --- FUNCTIONS --- */
-  ml::Vector& computeAngles( ml::Vector& res,
+  dg::Vector& computeAngles( dg::Vector& res,
 			     const int& time );
   MatrixRotation& computeFlexibilityFromAngles( MatrixRotation& res,
 						   const int& time );
@@ -105,11 +105,11 @@ class SOTANGLEESTIMATOR_EXPORT AngleEstimator
 						const int& time );
   MatrixHomogeneous& computeWaistWorldPosition( MatrixHomogeneous& res,
 						   const int& time );
-  ml::Vector& computeWaistWorldPoseRPY( ml::Vector& res,
+  dg::Vector& computeWaistWorldPoseRPY( dg::Vector& res,
 					const int& time );
-  ml::Vector& compute_xff_dotSOUT( ml::Vector& res,
+  dg::Vector& compute_xff_dotSOUT( dg::Vector& res,
 				   const int& time );
-  ml::Vector& compute_qdotSOUT( ml::Vector& res,
+  dg::Vector& compute_qdotSOUT( dg::Vector& res,
 				const int& time );
 
  public: /* --- PARAMS --- */

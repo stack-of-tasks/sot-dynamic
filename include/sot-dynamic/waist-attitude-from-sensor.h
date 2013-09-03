@@ -25,10 +25,6 @@
 /* --- INCLUDE --------------------------------------------------------- */
 /* --------------------------------------------------------------------- */
 
-/* Matrix */
-#include <jrl/mal/boost.hh>
-namespace ml = maal::boost;
-
 /* SOT */
 #include <dynamic-graph/entity.h>
 #include <dynamic-graph/signal-ptr.h>
@@ -115,11 +111,11 @@ class SOTWAISTATTITUDEFROMSENSOR_EXPORT WaistPoseFromSensorAndContact
 
  public: /* --- SIGNAL --- */
 
-  ml::Vector& computePositionWaist( ml::Vector& res,
+  dg::Vector& computePositionWaist( dg::Vector& res,
 				    const int& time );
 
   dg::SignalPtr<MatrixHomogeneous,int> positionContactSIN;
-  dg::SignalTimeDependent<ml::Vector,int> positionWaistSOUT;
+  dg::SignalTimeDependent<dg::Vector,int> positionWaistSOUT;
 
 
  public: /* --- PARAMS --- */
