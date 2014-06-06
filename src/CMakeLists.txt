@@ -61,7 +61,7 @@ FOREACH(lib ${plugins})
 ENDFOREACH(lib)
 
 # Main Library
-ADD_LIBRARY(${LIBRARY_NAME} SHARED sot-dynamic.cpp)
+ADD_LIBRARY(${LIBRARY_NAME} SHARED  sot-dynamic.cpp  ../include/sot-dynamic/dynamic.h)
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} jrl-dynamics)
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} sot-core)
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} dynamic-graph)
