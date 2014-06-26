@@ -1362,8 +1362,48 @@ computeTorqueDrift( ml::Vector& tauDrift,const int  & iter )
   const unsigned int NB_JOINTS = jointPositionSIN.accessCopy().size();
 
   tauDrift.resize(NB_JOINTS);
-  const vectorN& Torques = m_HDR->currentJointTorques();
-  for( unsigned int i=0;i<NB_JOINTS; ++i ) tauDrift(i) = Torques(i);
+  //const vectorN& Torques = m_HDR->currentJointTorques();
+  const matrixNxP & Torques = m_HDR->currentTorques();
+
+  std::vector< CjrlJoint* > jv = m_HDR->jointVector ();
+  for (std::vector< CjrlJoint* >::const_iterator it = jv.begin();
+       it != jv.end(); it++) {
+    
+    // Extract the index for the configuration state, and for the actuation vector.
+    unsigned int jointRankInConfig = (*it)->rankInConfiguration();
+    unsigned int jointRankInDrift = jointRankInConfig-6; // We assume only one Dof per joint.
+    // Extract the related torque
+    vector3d torque4jv;
+    for(unsigned int k=0;k<3;k++)
+      torque4jv(k) = Torques(jointRankInConfig,k);
+    
+    // Extract the orientation matrix to take into account static orientation.
+    matrix3d curTr3d,initTr3d;
+    matrix4d initTr4d; initTr4d = (*it)->initialPosition();
+    const matrix4d & curTr4d = (*it)->currentTransformation();
+
+    // Transfert from 4d to 3d
+    for(unsigned int i=0;i<3;i++)
+      for(unsigned int j=0;j<3;j++)
+        { 
+          curTr3d(i,j) = curTr4d(i,j); 
+          initTr3d(i,j) = initTr4d(i,j);
+        } 
+    
+    // Build the correction matrice
+    matrix3d correction_matrix = curTr3d * initTr3d.Transpose() * curTr3d.Transpose();
+
+    // Compute the final torque.
+    vector3d final_torques = correction_matrix * torque4jv;
+    
+    // Compute the final axis.
+    vector3d lphi(1.0,0.0,0.0),res; 
+    res = correction_matrix * lphi;
+    if (res(0) == 1.0) tauDrift(jointRankInDrift) = final_torques(0);
+    if (res(1) == 1.0) tauDrift(jointRankInDrift) = final_torques(1);
+    if (res(2) == 1.0) tauDrift(jointRankInDrift) = final_torques(2);
+    
+  }
 
   sotDEBUGOUT(25);
   return tauDrift;
