@@ -104,6 +104,10 @@ class AbstractHumanoidRobot (object):
     """
     enableVelocityDerivator = False
     """
+    plug the velocity from device to dynamic
+    """
+    plugVelocityFromDevice = False
+    """
     Enable acceleration computation.
     """
     enableAccelerationDerivator = False
@@ -248,6 +252,8 @@ class AbstractHumanoidRobot (object):
             self.velocityDerivator.dt.value = self.timeStep
             plug(self.device.state, self.velocityDerivator.sin)
             plug(self.velocityDerivator.sout, self.dynamic.velocity)
+        elif self.plugVelocityFromDevice:
+            plug(self.device.velocity, self.dynamic.velocity)
         else:
             self.dynamic.velocity.value = self.dimension*(0.,)
 
