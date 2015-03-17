@@ -253,6 +253,7 @@ class AbstractHumanoidRobot (object):
             plug(self.device.state, self.velocityDerivator.sin)
             plug(self.velocityDerivator.sout, self.dynamic.velocity)
         elif self.plugVelocityFromDevice:
+            self.device.setVelocity(self.dimension*(0.,))
             plug(self.device.velocity, self.dynamic.velocity)
         else:
             self.dynamic.velocity.value = self.dimension*(0.,)
